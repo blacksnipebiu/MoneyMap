@@ -18,6 +18,15 @@
       "agent": "Sisyphus-Junior",
       "category": "deep",
       "updated_at": "2026-05-04T15:24:04.911Z"
+    },
+    "todo:5": {
+      "task_key": "todo:5",
+      "task_label": "5",
+      "task_title": "重建 CategoriesViewModel（完整 CRUD）",
+      "session_id": "ses_20c5efaacfferFF0zabWgvwULF",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-04T15:45:58.287Z"
     }
   }
 }

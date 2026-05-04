@@ -140,3 +140,124 @@
 - Initial build failed due to cached obj files; resolved by `dotnet clean` then rebuild
 - Both CategoryService and StatisticsService had same issue (ICategoryService/IStatisticsService not found)
 - Clean rebuild resolved the issue - was likely stale assembly reference cache
+
+---
+
+## StatisticsView Implementation (2026-05-04)
+
+### Files Created
+1. `src/Bookkeeping.App/ViewModels/StatisticsViewModel.cs`
+2. `src/Bookkeeping.App/Views/StatisticsView.axaml`
+3. `src/Bookkeeping.App/Views/StatisticsView.axaml.cs`
+
+### ViewModel Properties
+- `ObservableCollection<CategorySummaryDto> CategorySummaries`
+- `ObservableCollection<TopCategoryDto> TopCategories`
+- `ObservableCollection<MonthAmountDto> TrendData`
+- `TransactionType SelectedType` (default: Expense)
+- `DateTime SelectedMonth` (default: first day of current month)
+- `long? SelectedCategoryId`
+- `string? SelectedCategoryName`
+- `CategorySummaryDto? SelectedCategorySummary` (for ComboBox binding)
+- `bool IsLoading`, `string? ErrorMessage`, `int SelectedTabIndex`
+- Chart series arrays: `PieChartSeries`, `TrendChartSeries`, `TopNChartSeries`
+- Axis arrays: `TrendXAxes`, `TrendYAxes`, `TopNXAxes`, `TopNYAxes`
+
+### Commands
+- `LoadSummaryCommand` → `GetCategorySummaryAsync(month, type)`
+- `LoadTopCategoriesCommand` → `GetTopCategoriesAsync(type, 5, month)`
+- `LoadTrendCommand` → `GetCategoryTrendAsync(categoryId, 6)`
+- `SwitchTypeCommand(type)` → toggles Income/Expense
+- `ChangeMonthCommand(offset)` → ±1 month navigation
+- `LoadAllDataAsync()` → parallel Task.WhenAll for summary + topN
+
+### LiveCharts2 Integration
+- Package already present: `LiveChartsCore.SkiaSharpView.Avalonia` version 2.0.0-rc5.4
+- Namespace: `xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"`
+- Chart control: `<lvc:CartesianChart>` for all chart types (pie, line, bar)
+- PieChart uses `PieSeries<decimal>` with colors array
+- LineChart uses `LineSeries<decimal>` with GeometrySize and stroke
+- BarChart uses `ColumnSeries<decimal>` with MaxBarWidth
+- Axis configuration with LabelsPaint and SeparatorsPaint using SKColor/SKColors
+
+### XAML Patterns
+- `x:Static enums:TransactionType.Expense` requires `xmlns:enums="using:Bookkeeping.Core.Enums"`
+- Empty state uses `IsVisible="{Binding !CollectionName.Count}"` pattern
+- Chart visibility: `IsVisible="{Binding !!CollectionName.Count}"`
+
+### Pre-existing Build Errors (NOT from this task)
+- CategoriesView.axaml has errors: `EnumConverters` type not found, `TransactionType` resolution issues
+- These errors existed before StatisticsView was created (CategoriesView was never modified)
+
+---
+
+## CategoriesViewModel Rebuild (2026-05-04)
+
+### Files Modified
+1. `src/Bookkeeping.App/ViewModels/CategoriesViewModel.cs` - Complete rebuild with full CRUD
+2. `src/Bookkeeping.App/Views/CategoriesView.axaml` - Updated bindings to match new ViewModel
+3. `src/Bookkeeping.Data/ServiceCollectionExtensions.cs` - Added ICategoryService registration
+4. `src/Bookkeeping.App/Converters/CommonConverters.cs` - Created EnumToBoolConverter, NotNullToBoolConverter, NullToBoolConverter
+5. `src/Bookkeeping.App/App.axaml` - Registered new converters
+
+### ViewModel Structure
+
+#### Properties
+- `ObservableCollection<CategoryItemViewModel> IncomeCategories` - Grouped income categories
+- `ObservableCollection<CategoryItemViewModel> ExpenseCategories` - Grouped expense categories
+- `CategoryItemViewModel? SelectedCategory` - Current selection
+- `string NewCategoryName` - Add form
+- `TransactionType NewCategoryType` - Add form (default Expense)
+- `string? SelectedIcon` - Add form emoji
+- `bool IsLoading`, `string? ErrorMessage`, `bool IsEditing` - State
+- `string EditingName`, `string? EditingIcon` - Edit form
+- `bool ShowDeleteReassignDialog`, `CategoryItemViewModel? CategoryToDelete`, `ReassignTargetCategory` - Delete dialog state
+
+#### Nested CategoryItemViewModel
+- Properties: Id, Name, Icon, Type, SortOrder, TransactionCount, IsSelected
+- Computed: DisplayName (icon + name)
+
+#### Commands
+- `LoadCategoriesAsync` - Loads all categories, splits by type into collections
+- `AddCategoryAsync` - Validates, calls CreateAsync, adds to correct collection
+- `EditCategory(CategoryItemViewModel)` - Sets SelectedCategory, enters edit mode
+- `UpdateCategoryAsync` - Saves changes via UpdateAsync
+- `DeleteCategoryAsync(CategoryItemViewModel)` - Checks transactions, shows dialog if needed
+- `ConfirmDeleteWithReassignAsync` - Calls CategoryService.ReassignAndDeleteAsync (cast from interface)
+- `CloseDeleteReassignDialog` - Resets dialog state
+- `CancelEdit` - Resets edit state
+- `MoveUpAsync` / `MoveDownAsync` - Swaps SortOrder between adjacent items
+
+### Key Implementation Notes
+
+#### DI Registration
+- Added `services.AddScoped<ICategoryService, CategoryService>()` to Bookkeeping.Data ServiceCollectionExtensions
+- This was missing before - CategoryService existed but wasn't registered
+
+#### Service Access Pattern
+- All commands access ICategoryService via `App.Services.GetRequiredService<ICategoryService>()`
+- For ReassignAndDeleteAsync (not on interface), cast to concrete CategoryService:
+  ```csharp
+  var categoryService = (CategoryService)App.Services.GetRequiredService<ICategoryService>();
+  ```
+
+#### TransactionCount
+- Category.Transactions collection may not be loaded (no Include in GetAllAsync)
+- Set to 0 or use Transactions?.Count - relies on EF lazy loading or manual refresh
+- For accurate count after reassignment, manually update the target CategoryItemViewModel.TransactionCount
+
+#### RadioButton Binding
+- Used `EnumToBoolConverter` to bind RadioButtons to TransactionType enum
+- Converter checks `value.ToString() == parameter.ToString()`
+
+### XAML Patterns Used
+- ItemsControl with DataTemplate for category lists
+- Command binding via `$parent[ItemsControl].((vm:CategoriesViewModel)DataContext)` pattern
+- Dialog overlay using Grid.ColumnSpan="2" with Background="#80000000"
+- PlaceholderText instead of deprecated Watermark
+
+### Build Issues Fixed
+1. Multiple root elements in UserControl → wrapped all content in single Grid
+2. Watermark deprecation → changed to PlaceholderText
+3. Missing converter registrations → added to App.axaml Resources
+4. Missing ICategoryService registration → added to ServiceCollectionExtensions

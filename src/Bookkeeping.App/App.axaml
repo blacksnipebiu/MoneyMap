@@ -23,6 +23,9 @@
         <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
         <converters:HasItemsConverter x:Key="HasItemsConverter"/>
         <converters:IsGreaterThanZeroConverter x:Key="IsGreaterThanZero"/>
+        <converters:EnumToBoolConverter x:Key="EnumToBoolConverter"/>
+        <converters:NotNullToBoolConverter x:Key="NotNullToBoolConverter"/>
+        <converters:NullToBoolConverter x:Key="NullToBoolConverter"/>
     </Application.Resources>
     
     <Application.Styles>

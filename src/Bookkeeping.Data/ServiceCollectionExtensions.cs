@@ -1,8 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Bookkeeping.Data.Repositories;
+using Bookkeeping.Data.Services;
 using Bookkeeping.Core.Enums;
 using Bookkeeping.Core.Models;
+using Bookkeeping.Core.Services;
 
 namespace Bookkeeping.Data;
 
@@ -17,6 +19,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IImportRecordRepository, ImportRecordRepository>();
         services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<ICategoryService, CategoryService>();
 
         return services;
     }
