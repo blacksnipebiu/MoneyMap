@@ -11,6 +11,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ImportViewModel _importViewModel = new();
     private readonly AnalyticsViewModel _analyticsViewModel = new();
     private readonly CategoriesViewModel _categoriesViewModel = new();
+    private readonly StatisticsViewModel _statisticsViewModel = new();
     private readonly AccountsViewModel _accountsViewModel = new();
     private readonly SettingsViewModel _settingsViewModel = new();
 
@@ -36,6 +37,7 @@ public partial class MainWindowViewModel : ViewModelBase
             "Import" => _importViewModel,
             "Analytics" => _analyticsViewModel,
             "Categories" => _categoriesViewModel,
+            "统计" => _statisticsViewModel,
             "Accounts" => _accountsViewModel,
             "Settings" => _settingsViewModel,
             _ => CurrentPage

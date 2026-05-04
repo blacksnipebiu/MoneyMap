@@ -687,7 +687,7 @@ Max Concurrent: 6 (Wave 2)
   - Message: `feat(category): add statistics page with LiveCharts2 charts`
   - Files: `src/Bookkeeping.App/ViewModels/StatisticsViewModel.cs`, `src/Bookkeeping.App/Views/StatisticsView.axaml`, `src/Bookkeeping.App/Views/StatisticsView.axaml.cs`, `src/Bookkeeping.App/Bookkeeping.App.csproj`
 
-- [ ] 11. DI 注册 + 导航集成 + 端到端验证
+- [x] 11. DI 注册 + 导航集成 + 端到端验证
 
   **What to do**:
   - 在 `App.axaml.cs` 的 `OnFrameworkInitializationCompleted()` 中注册：

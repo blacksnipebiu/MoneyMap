@@ -8,8 +8,10 @@ using Bookkeeping.App.Views;
 using Bookkeeping.App.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Bookkeeping.Data;
+using Bookkeeping.Data.Services;
 using Bookkeeping.Import;
 using Bookkeeping.Core.Interfaces;
+using Bookkeeping.Core.Services;
 
 namespace Bookkeeping.App;
 
@@ -44,7 +46,11 @@ public partial class App : Application
             services.AddBookkeepingImport();
             services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
             services.AddSingleton<ToastService>();
-            
+
+            // Business services
+            services.AddScoped<ICategoryService, CategoryService>();
+            services.AddScoped<IStatisticsService, StatisticsService>();
+
             Services = services.BuildServiceProvider();
             ToastService = Services.GetRequiredService<ToastService>();
             
