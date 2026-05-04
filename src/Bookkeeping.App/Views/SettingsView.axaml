@@ -1,0 +1,61 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Bookkeeping.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Bookkeeping.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <Design.DataContext>
+        <vm:SettingsViewModel/>
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <StackPanel Spacing="20" MaxWidth="600">
+            <TextBlock Text="设置" Classes="Heading"/>
+            
+            <!-- Data Storage -->
+            <Border Classes="Card">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="数据存储" Classes="Title"/>
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="数据库路径：" Classes="Subtitle"/>
+                        <TextBlock Text="{Binding DatabasePath}" TextWrapping="Wrap" 
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="当前记录数：" Classes="Subtitle"/>
+                        <TextBlock Text="{Binding TransactionCount, StringFormat='{}{0} 条交易记录'}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            
+            <!-- Danger Zone -->
+            <Border Classes="Card" BorderBrush="#FCA5A5" BorderThickness="2">
+                <StackPanel Spacing="16">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="⚠️" FontSize="18"/>
+                        <TextBlock Text="危险操作" Classes="Title" Foreground="#DC2626"/>
+                    </StackPanel>
+                    <TextBlock Text="重置数据库将删除所有交易记录、账户和导入历史。此操作不可恢复。"
+                               TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <Button Classes="Danger" Content="重置数据库" 
+                            Command="{Binding ResetDatabaseCommand}"
+                            IsEnabled="{Binding IsResetting, Converter={x:Static BoolConverters.Not}}"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- About -->
+            <Border Classes="Card">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="关于" Classes="Title"/>
+                    <TextBlock Text="记账本 Bookkeeping" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding AppVersion, StringFormat='版本 {0}'}" Classes="Subtitle"/>
+                    <TextBlock Text="跨平台桌面记账应用" Classes="Subtitle"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>

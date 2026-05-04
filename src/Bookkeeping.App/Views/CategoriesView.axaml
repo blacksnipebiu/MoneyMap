@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Bookkeeping.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Bookkeeping.App.Views.CategoriesView"
+             x:DataType="vm:CategoriesViewModel">
+
+    <Design.DataContext>
+        <vm:CategoriesViewModel/>
+    </Design.DataContext>
+
+    <Grid ColumnDefinitions="*,300" ColumnSpacing="20">
+        <!-- Category List -->
+        <Border Classes="Card" Grid.Column="0">
+            <StackPanel Spacing="12">
+                <TextBlock Text="分类管理" Classes="Title"/>
+                <TextBlock Text="收入分类" Classes="Subtitle" Margin="0,12,0,0"/>
+                <TextBlock Text="  💼 工资收入" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Text="  🎁 奖金收入" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Text="  📈 投资收益" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Text="  🧧 红包收入" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                
+                <TextBlock Text="支出分类" Classes="Subtitle" Margin="0,20,0,0"/>
+                <TextBlock Text="  🍽️ 餐饮美食" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Text="  🚗 交通出行" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Text="  🛒 购物消费" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Text="  🏠 生活服务" Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- Add Category Form -->
+        <Border Classes="Card" Grid.Column="1">
+            <StackPanel Spacing="16">
+                <TextBlock Text="添加分类" Classes="Title"/>
+                <TextBox Text="{Binding NewCategoryName}" Watermark="分类名称"/>
+                <Button Classes="Primary" Content="添加" HorizontalAlignment="Stretch"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+
+</UserControl>

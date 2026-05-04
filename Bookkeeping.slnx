@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Bookkeeping.App/Bookkeeping.App.csproj" />
+    <Project Path="src/Bookkeeping.Core/Bookkeeping.Core.csproj" />
+    <Project Path="src/Bookkeeping.Data/Bookkeeping.Data.csproj" />
+    <Project Path="src/Bookkeeping.Import/Bookkeeping.Import.csproj" />
+  </Folder>
+</Solution>

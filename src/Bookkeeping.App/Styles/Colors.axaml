@@ -1,0 +1,59 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <!-- Brand Colors -->
+        <Color x:Key="PrimaryColor">#4F46E5</Color>
+        <Color x:Key="PrimaryDarkColor">#4338CA</Color>
+        <Color x:Key="PrimaryLightColor">#818CF8</Color>
+        
+        <!-- Semantic Colors -->
+        <Color x:Key="SuccessColor">#10B981</Color>
+        <Color x:Key="DangerColor">#EF4444</Color>
+        <Color x:Key="WarningColor">#F59E0B</Color>
+        <Color x:Key="InfoColor">#3B82F6</Color>
+        
+        <!-- Background Colors -->
+        <Color x:Key="BackgroundColor">#F9FAFB</Color>
+        <Color x:Key="SurfaceColor">#FFFFFF</Color>
+        <Color x:Key="CardBackgroundColor">#FFFFFF</Color>
+        
+        <!-- Border Colors -->
+        <Color x:Key="BorderColor">#E5E7EB</Color>
+        <Color x:Key="DividerColor">#F3F4F6</Color>
+        
+        <!-- Text Colors -->
+        <Color x:Key="TextPrimaryColor">#111827</Color>
+        <Color x:Key="TextSecondaryColor">#6B7280</Color>
+        <Color x:Key="TextDisabledColor">#9CA3AF</Color>
+        
+        <!-- Sidebar Colors -->
+        <Color x:Key="SidebarBackgroundColor">#1E1B4B</Color>
+        <Color x:Key="SidebarTextColor">#E0E7FF</Color>
+        <Color x:Key="SidebarAccentColor">#818CF8</Color>
+        
+        <!-- Brushes -->
+        <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
+        <SolidColorBrush x:Key="PrimaryDarkBrush" Color="{StaticResource PrimaryDarkColor}"/>
+        <SolidColorBrush x:Key="PrimaryLightBrush" Color="{StaticResource PrimaryLightColor}"/>
+        
+        <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+        <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
+        
+        <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}"/>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}"/>
+        <SolidColorBrush x:Key="CardBackgroundBrush" Color="{StaticResource CardBackgroundColor}"/>
+        
+        <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+        <SolidColorBrush x:Key="DividerBrush" Color="{StaticResource DividerColor}"/>
+        
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
+        <SolidColorBrush x:Key="TextDisabledBrush" Color="{StaticResource TextDisabledColor}"/>
+        
+        <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="{StaticResource SidebarBackgroundColor}"/>
+        <SolidColorBrush x:Key="SidebarTextBrush" Color="{StaticResource SidebarTextColor}"/>
+        <SolidColorBrush x:Key="SidebarAccentBrush" Color="{StaticResource SidebarAccentColor}"/>
+    </Styles.Resources>
+</Styles>

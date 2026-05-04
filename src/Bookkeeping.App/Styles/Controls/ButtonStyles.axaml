@@ -1,0 +1,73 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Primary Button -->
+    <Style Selector="Button.Primary">
+        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CornerRadiusMd}"/>
+        <Setter Property="Padding" Value="16,8"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
+        <Setter Property="FontWeight" Value="{DynamicResource FontWeightMedium}"/>
+    </Style>
+    
+    <Style Selector="Button.Primary:pointerover">
+        <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+    </Style>
+    
+    <Style Selector="Button.Primary:pressed">
+        <Setter Property="Background" Value="{DynamicResource PrimaryDarkBrush}"/>
+    </Style>
+    
+    <!-- Secondary Button -->
+    <Style Selector="Button.Secondary">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CornerRadiusMd}"/>
+        <Setter Property="Padding" Value="16,8"/>
+    </Style>
+    
+    <Style Selector="Button.Secondary:pointerover">
+        <Setter Property="Background" Value="{DynamicResource DividerBrush}"/>
+    </Style>
+    
+    <!-- Danger Button -->
+    <Style Selector="Button.Danger">
+        <Setter Property="Background" Value="{DynamicResource DangerBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CornerRadiusMd}"/>
+        <Setter Property="Padding" Value="16,8"/>
+    </Style>
+    
+    <Style Selector="Button.Danger:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#DC2626"/>
+    </Style>
+    
+    <!-- Success Button -->
+    <Style Selector="Button.Success">
+        <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CornerRadiusMd}"/>
+        <Setter Property="Padding" Value="16,8"/>
+    </Style>
+    
+    <!-- Icon Button -->
+    <Style Selector="Button.Icon">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="8"/>
+        <Setter Property="Width" Value="36"/>
+        <Setter Property="Height" Value="36"/>
+        <Setter Property="CornerRadius" Value="18"/>
+    </Style>
+    
+    <Style Selector="Button.Icon:pointerover">
+        <Setter Property="Background" Value="{DynamicResource DividerBrush}"/>
+    </Style>
+    
+</Styles>

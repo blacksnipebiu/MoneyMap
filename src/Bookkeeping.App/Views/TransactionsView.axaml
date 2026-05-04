@@ -1,0 +1,127 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Bookkeeping.App.ViewModels"
+             xmlns:models="using:Bookkeeping.Core.Models"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Bookkeeping.App.Views.TransactionsView"
+             x:DataType="vm:TransactionsViewModel">
+
+    <Design.DataContext>
+        <vm:TransactionsViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,Auto,*">
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="交易记录" Classes="Heading"/>
+            <TextBlock Text="{Binding TotalCount, StringFormat='共 {0} 条'}" 
+                       VerticalAlignment="Center" Margin="16,0,0,0"
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </StackPanel>
+        
+        <!-- Filter Bar -->
+        <Border Classes="Card" Grid.Row="1" Margin="0,0,0,16" Padding="16">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBox Text="{Binding SearchKeyword}" PlaceholderText="搜索描述、交易对象..." 
+                         Width="200" KeyDown="OnSearchKeyDown"/>
+                <DatePicker SelectedDate="{Binding DateFrom}" 
+                           HorizontalAlignment="Center" Width="140"/>
+                <TextBlock Text="至" VerticalAlignment="Center"/>
+                <DatePicker SelectedDate="{Binding DateTo}" 
+                           HorizontalAlignment="Center" Width="140"/>
+                <ComboBox SelectedItem="{Binding SelectedType}" 
+                          PlaceholderText="全部类型" Width="120"
+                          ItemsSource="{Binding TypeOptions}"/>
+                <Button Classes="Primary" Content="搜索" Command="{Binding SearchCommand}"/>
+                <Button Classes="Secondary" Content="重置" Command="{Binding ClearFiltersCommand}"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- Transaction List -->
+        <Border Classes="Card" Grid.Row="2">
+            <Grid RowDefinitions="*,Auto">
+                <!-- Loading -->
+                <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center"
+                            IsVisible="{Binding IsLoading}">
+                    <ProgressBar IsIndeterminate="True" Width="100"/>
+                    <TextBlock Text="加载中..." Margin="0,12,0,0" 
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </StackPanel>
+                
+                <!-- Empty State -->
+                <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Spacing="12" IsVisible="{Binding !HasData}">
+                    <TextBlock Text="📋" FontSize="48" HorizontalAlignment="Center"/>
+                    <TextBlock Text="暂无交易记录" Classes="Title" HorizontalAlignment="Center"/>
+                    <TextBlock Text="请先导入账单数据" Classes="Subtitle" HorizontalAlignment="Center"/>
+                </StackPanel>
+                
+                <!-- Transaction List -->
+                <ScrollViewer Grid.Row="0" IsVisible="{Binding HasData}">
+                    <ItemsControl ItemsSource="{Binding Transactions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="models:Transaction">
+                                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                                        Padding="16,12" Background="Transparent"
+                                        Classes="CardHover">
+                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                        <!-- Type Icon -->
+                                        <Border Grid.Column="0" Width="40" Height="40" CornerRadius="20"
+                                                Background="{Binding Type, Converter={StaticResource TransactionTypeBrushConverter}}"
+                                                Margin="0,0,12,0">
+                                            <TextBlock Text="{Binding Type, Converter={StaticResource TransactionTypeIconConverter}}"
+                                                       FontSize="16" HorizontalAlignment="Center" 
+                                                       VerticalAlignment="Center" Foreground="White"/>
+                                        </Border>
+                                        
+                                        <!-- Info -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                            <TextBlock Text="{Binding Description}" FontWeight="Medium" 
+                                                       TextTrimming="CharacterEllipsis" MaxLines="1"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding TransactionTime, StringFormat='yyyy-MM-dd HH:mm'}" 
+                                                           Classes="Caption"/>
+                                                <TextBlock Text="{Binding Counterparty}" Classes="Caption"
+                                                           IsVisible="{Binding Counterparty, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                        
+                                        <!-- Amount -->
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" 
+                                                    HorizontalAlignment="Right" Margin="16,0">
+                                            <TextBlock Text="{Binding Amount, StringFormat='{}{0:N2}'}" 
+                                                       FontWeight="SemiBold" FontSize="15"
+                                                       Foreground="{Binding Type, Converter={StaticResource TransactionTypeBrushConverter}}"/>
+                                            <TextBlock Text="{Binding CategoryName}" Classes="Caption"
+                                                       HorizontalAlignment="Right"/>
+                                        </StackPanel>
+                                        
+                                        <!-- Delete Button -->
+                                        <Button Grid.Column="3" Classes="Icon" Content="🗑️" 
+                                                VerticalAlignment="Center" Margin="8,0,0,0"
+                                                Command="{Binding $parent[ItemsControl].((vm:TransactionsViewModel)DataContext).DeleteCommand}"
+                                                CommandParameter="{Binding}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                
+                <!-- Pagination -->
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" 
+                            Spacing="8" Margin="0,16,0,0" IsVisible="{Binding HasData}">
+                    <Button Content="上一页" Command="{Binding PreviousPageCommand}"/>
+                    <TextBlock Text="{Binding CurrentPage, StringFormat='第 {0} 页'}" 
+                               VerticalAlignment="Center" Margin="8,0"/>
+                    <TextBlock Text="{Binding TotalPages, StringFormat='共 {0} 页'}" 
+                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <Button Content="下一页" Command="{Binding NextPageCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+
+</UserControl>

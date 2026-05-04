@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:services="using:Bookkeeping.App.Services"
+             x:Class="Bookkeeping.App.Controls.ToastControl"
+             x:DataType="services:ToastItem"
+             Opacity="{Binding Opacity}"
+             IsVisible="{Binding IsVisible}">
+
+    <Border x:Name="ToastBorder" CornerRadius="8" Padding="16,12" Margin="8,4"
+            BoxShadow="0 4 12 0 #33000000">
+        <Grid ColumnDefinitions="Auto,*">
+            <!-- Icon -->
+            <TextBlock x:Name="IconText" Grid.Column="0" FontSize="16" Margin="0,0,12,0"
+                       VerticalAlignment="Center" Foreground="White"/>
+            
+            <!-- Message -->
+            <TextBlock Grid.Column="1" Text="{Binding Message}" 
+                       Foreground="White" FontSize="14" TextWrapping="Wrap"
+                       VerticalAlignment="Center"/>
+        </Grid>
+    </Border>
+
+</UserControl>

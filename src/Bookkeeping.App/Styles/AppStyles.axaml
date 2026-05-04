@@ -1,0 +1,40 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <StyleInclude Source="/Styles/Colors.axaml"/>
+    <StyleInclude Source="/Styles/Typography.axaml"/>
+    <StyleInclude Source="/Styles/Controls/ButtonStyles.axaml"/>
+    <StyleInclude Source="/Styles/Controls/TextBoxStyles.axaml"/>
+    <StyleInclude Source="/Styles/Controls/PanelStyles.axaml"/>
+    
+    <!-- Global Styles -->
+    <Style Selector="Window">
+        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
+    </Style>
+    
+    <Style Selector="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    
+    <Style Selector="TextBlock.Heading">
+        <Setter Property="FontSize" Value="{DynamicResource FontSize2xl}"/>
+        <Setter Property="FontWeight" Value="{DynamicResource FontWeightBold}"/>
+    </Style>
+    
+    <Style Selector="TextBlock.Title">
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeXl}"/>
+        <Setter Property="FontWeight" Value="{DynamicResource FontWeightSemibold}"/>
+    </Style>
+    
+    <Style Selector="TextBlock.Subtitle">
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeMd}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    </Style>
+    
+    <Style Selector="TextBlock.Caption">
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeSm}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    </Style>
+    
+</Styles>
