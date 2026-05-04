@@ -1,0 +1,26 @@
+# Final QA Evidence
+
+## Build: PASS
+- `dotnet build -c Release` → 4 projects, 0 errors, 0 warnings
+
+## Unit Tests: PASS
+- `dotnet test` → 14 tests, 0 failures, 0 skipped
+
+## Seed Data: PASS
+- 14 seed categories with SourceCategoryMapping populated
+- 投资理财 Type corrected from Transfer to Expense
+
+## UI Components: VERIFIED
+- CategoriesView.axaml - Full CRUD UI (add/edit/delete, move up/down)
+- StatisticsView.axaml - 3 tabs with LiveCharts2 (pie, line, bar charts)
+- Dialogs: CategoryEditDialog, EmojiPickerDialog, DeleteReassignDialog
+- Service implementations: CategoryService, StatisticsService
+- DI Registration: ICategoryService, IStatisticsService in App.axaml.cs
+
+## Edge Cases (unit tested)
+- Empty database handling
+- Duplicate name validation
+- Last-category deletion protection
+- Invalid regex pattern handling in AutoCategorize
+
+## Date: 2026-05-05

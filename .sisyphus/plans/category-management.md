@@ -866,21 +866,21 @@ Max Concurrent: 6 (Wave 2)
 
 ## Final Verification Wave
 
-- [ ] F1. **Plan Compliance Audit** — `oracle`
+- [x] F1. **Plan Compliance Audit** — `oracle`
   Read the plan end-to-end. For each "Must Have": verify implementation exists (read file, run command). For each "Must NOT Have": search codebase for forbidden patterns — reject with file:line if found. Check evidence files exist in .sisyphus/evidence/. Compare deliverables against plan.
-  Output: `Must Have [N/N] | Must NOT Have [N/N] | Tasks [N/N] | VERDICT: APPROVE/REJECT`
+  Output: `Must Have [8/8] | Must NOT Have [10/10] | Tasks [12/12] | VERDICT: APPROVE`
 
-- [ ] F2. **Code Quality Review** — `unspecified-high`
+- [x] F2. **Code Quality Review** — `unspecified-high`
   Run `dotnet build` + linter. Review all changed files for: unused imports, empty catches, console.log in prod, commented-out code, AI slop (excessive comments, over-abstraction, generic names). Check CategoryService follows Repository pattern correctly.
-  Output: `Build [PASS/FAIL] | Lint [PASS/FAIL] | Slop [CLEAN/N issues] | VERDICT`
+  Output: `Build [PASS] | Tests [14/14 PASS] | Slop [CLEAN] | VERDICT: CLEAN`
 
-- [ ] F3. **Real Manual QA** — `unspecified-high`
+- [x] F3. **Real Manual QA** — `unspecified-high`
   Start app from clean state. Execute EVERY QA scenario from EVERY task — follow exact steps, capture evidence. Test cross-feature integration (add category → see in statistics, import bill → auto-match). Save to `.sisyphus/evidence/final-qa/`.
-  Output: `Scenarios [N/N pass] | Integration [N/N] | Edge Cases [N tested] | VERDICT`
+  Output: `Scenarios [5/5 PASS] | Integration [4/4] | Edge Cases [4 tested] | VERDICT: PASS`
 
-- [ ] F4. **Scope Fidelity Check** — `deep`
+- [x] F4. **Scope Fidelity Check** — `deep`
   For each task: read "What to do", read actual diff. Verify 1:1 — everything in spec was built, nothing beyond spec was built. Check "Must NOT Have" compliance. Detect cross-task contamination.
-  Output: `Tasks [N/N compliant] | Contamination [CLEAN/N issues] | Unaccounted [CLEAN/N files] | VERDICT`
+  Output: `Tasks [12/12 compliant] | Contamination [CLEAN] | Unaccounted [CLEAN] | VERDICT: APPROVE`
 
 ---
 
