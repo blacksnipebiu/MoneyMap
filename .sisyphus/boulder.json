@@ -27,6 +27,15 @@
       "agent": "Sisyphus-Junior",
       "category": "deep",
       "updated_at": "2026-05-04T15:45:58.287Z"
+    },
+    "todo:11": {
+      "task_key": "todo:11",
+      "task_label": "11",
+      "task_title": "DI 注册 + 导航集成 + 端到端验证",
+      "session_id": "ses_20c50e509ffeohgn5OjFMpl5XP",
+      "agent": "Sisyphus-Junior",
+      "category": "visual-engineering",
+      "updated_at": "2026-05-04T16:01:11.386Z"
     }
   }
 }

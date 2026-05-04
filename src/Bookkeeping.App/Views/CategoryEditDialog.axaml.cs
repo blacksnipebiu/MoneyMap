@@ -1,0 +1,102 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Bookkeeping.App.ViewModels;
+
+namespace Bookkeeping.App.Views;
+
+public partial class CategoryEditDialog : Window
+{
+    private CategoryEditViewModel? _viewModel;
+
+    public CategoryEditDialog()
+    {
+        InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
+    }
+
+    public static CategoryEditViewModel? ShowDialog(Window parent, CategoryEditViewModel vm)
+    {
+        var dialog = new CategoryEditDialog
+        {
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+
+        vm.InitializeForAdd(Core.Enums.TransactionType.Expense);
+        dialog.DataContext = vm;
+        dialog._viewModel = vm;
+        dialog.Owner = parent;
+        dialog.UpdateTitle();
+        dialog.ShowDialog(parent);
+
+        return vm.DialogResult ? vm : null;
+    }
+
+    public static CategoryEditViewModel? ShowDialog(Window parent, CategoriesViewModel.CategoryItemViewModel category)
+    {
+        var dialog = new CategoryEditDialog
+        {
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+
+        var vm = new CategoryEditViewModel();
+        vm.InitializeForEdit(category);
+        dialog.DataContext = vm;
+        dialog._viewModel = vm;
+        dialog.Owner = parent;
+        dialog.UpdateTitle();
+        dialog.ShowDialog(parent);
+
+        return vm.DialogResult ? vm : null;
+    }
+
+    private void OnDataContextChanged(object? sender, System.EventArgs e)
+    {
+        if (DataContext is CategoryEditViewModel vm)
+        {
+            _viewModel = vm;
+            UpdateTitle();
+        }
+    }
+
+    private void UpdateTitle()
+    {
+        if (_viewModel != null)
+        {
+            Title = _viewModel.IsEditMode ? "编辑分类" : "添加分类";
+            TitleText.Text = _viewModel.IsEditMode ? "编辑分类" : "添加分类";
+        }
+    }
+
+    private void OnSelectIconClick(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel == null || Owner is not Window ownerWindow) return;
+
+        var selectedEmoji = EmojiPickerDialog.ShowDialog(ownerWindow, _viewModel.SelectedIcon);
+        if (selectedEmoji != null)
+        {
+            _viewModel.SelectedIcon = selectedEmoji;
+        }
+    }
+
+    private void OnConfirmClick(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel == null) return;
+
+        _viewModel.ConfirmCommand.Execute(null);
+
+        if (_viewModel.DialogResult)
+        {
+            Close(_viewModel);
+        }
+    }
+
+    private void OnCancelClick(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel != null)
+        {
+            _viewModel.CancelCommand.Execute(null);
+        }
+        Close(null);
+    }
+}
