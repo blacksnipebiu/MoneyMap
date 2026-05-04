@@ -779,7 +779,7 @@ Max Concurrent: 6 (Wave 2)
   - Message: `feat(category): integrate DI registration, navigation, and end-to-end validation`
   - Files: `src/Bookkeeping.App/App.axaml.cs`, `src/Bookkeeping.App/ViewModels/MainWindowViewModel.cs`, `src/Bookkeeping.App/Views/MainWindow.axaml`
 
-- [ ] 12. 单元测试
+- [x] 12. 单元测试
 
   **What to do**:
   - 添加 xUnit 测试项目 `tests/Bookkeeping.Data.Tests/Bookkeeping.Data.Tests.csproj`

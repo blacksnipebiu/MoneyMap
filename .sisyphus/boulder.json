@@ -36,6 +36,15 @@
       "agent": "Sisyphus-Junior",
       "category": "unspecified-high",
       "updated_at": "2026-05-04T16:09:54.926Z"
+    },
+    "todo:12": {
+      "task_key": "todo:12",
+      "task_label": "12",
+      "task_title": "单元测试",
+      "session_id": "ses_20c3cc0a7ffegcFknUc0MW8TBM",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-04T16:19:29.245Z"
     }
   }
 }
