@@ -171,6 +171,7 @@ public class CategoryService : ICategoryService
         {
             transaction.CategoryId = targetId;
             transaction.Category = targetCategory;
+            transaction.CategoryName = targetCategory.Name;
         }
 
         await _context.SaveChangesAsync();

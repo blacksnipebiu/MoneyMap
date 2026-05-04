@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Bookkeeping.Core.Enums;
 using Bookkeeping.Core.Models;
 using Bookkeeping.Core.Services;
-using Bookkeeping.Data.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -352,8 +351,7 @@ public partial class CategoriesViewModel : ViewModelBase
 
         try
         {
-            // Cast to CategoryService to access ReassignAndDeleteAsync
-            var categoryService = (CategoryService)App.Services.GetRequiredService<ICategoryService>();
+            var categoryService = App.Services.GetRequiredService<ICategoryService>();
 
             var reassignedCount = await categoryService.ReassignAndDeleteAsync(
                 CategoryToDelete.Id,

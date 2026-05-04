@@ -12,4 +12,5 @@ public interface ICategoryService
     Task DeleteAsync(long id);
     Task<Category?> AutoCategorizeAsync(string description, string? counterparty, DataSource source);
     Task<IEnumerable<Category>> GetByTypeAsync(TransactionType type);
+    Task<int> ReassignAndDeleteAsync(long deleteId, long targetId);
 }

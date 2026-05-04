@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -18,7 +19,7 @@ public partial class EmojiPickerDialog : Window
         Loaded += OnLoaded;
     }
 
-    public static string? ShowDialog(Window parent, string? currentEmoji)
+    public static async Task<string?> ShowDialogAsync(Window parent, string? currentEmoji)
     {
         var dialog = new EmojiPickerDialog
         {
@@ -32,9 +33,8 @@ public partial class EmojiPickerDialog : Window
         }
 
         dialog.Owner = parent;
-        dialog.ShowDialog(parent);
 
-        return dialog._selectedEmoji;
+        return await dialog.ShowDialog<string?>(parent);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)

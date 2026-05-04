@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -15,7 +16,7 @@ public partial class CategoryEditDialog : Window
         DataContextChanged += OnDataContextChanged;
     }
 
-    public static CategoryEditViewModel? ShowDialog(Window parent, CategoryEditViewModel vm)
+    public static async Task<CategoryEditViewModel?> ShowDialogAsync(Window parent, CategoryEditViewModel vm)
     {
         var dialog = new CategoryEditDialog
         {
@@ -27,12 +28,11 @@ public partial class CategoryEditDialog : Window
         dialog._viewModel = vm;
         dialog.Owner = parent;
         dialog.UpdateTitle();
-        dialog.ShowDialog(parent);
 
-        return vm.DialogResult ? vm : null;
+        return await dialog.ShowDialog<CategoryEditViewModel?>(parent);
     }
 
-    public static CategoryEditViewModel? ShowDialog(Window parent, CategoriesViewModel.CategoryItemViewModel category)
+    public static async Task<CategoryEditViewModel?> ShowDialogAsync(Window parent, CategoriesViewModel.CategoryItemViewModel category)
     {
         var dialog = new CategoryEditDialog
         {
@@ -45,9 +45,8 @@ public partial class CategoryEditDialog : Window
         dialog._viewModel = vm;
         dialog.Owner = parent;
         dialog.UpdateTitle();
-        dialog.ShowDialog(parent);
 
-        return vm.DialogResult ? vm : null;
+        return await dialog.ShowDialog<CategoryEditViewModel?>(parent);
     }
 
     private void OnDataContextChanged(object? sender, System.EventArgs e)
@@ -68,11 +67,11 @@ public partial class CategoryEditDialog : Window
         }
     }
 
-    private void OnSelectIconClick(object? sender, RoutedEventArgs e)
+    private async void OnSelectIconClick(object? sender, RoutedEventArgs e)
     {
         if (_viewModel == null || Owner is not Window ownerWindow) return;
 
-        var selectedEmoji = EmojiPickerDialog.ShowDialog(ownerWindow, _viewModel.SelectedIcon);
+        var selectedEmoji = await EmojiPickerDialog.ShowDialogAsync(ownerWindow, _viewModel.SelectedIcon);
         if (selectedEmoji != null)
         {
             _viewModel.SelectedIcon = selectedEmoji;

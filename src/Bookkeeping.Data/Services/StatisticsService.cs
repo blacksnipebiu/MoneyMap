@@ -16,7 +16,7 @@ public class StatisticsService : IStatisticsService
 
     public async Task<IEnumerable<CategorySummaryDto>> GetCategorySummaryAsync(DateTime month, TransactionType type)
     {
-        var startDate = new DateTime(month.Year, month.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var startDate = new DateTime(month.Year, month.Month, 1);
         var endDate = startDate.AddMonths(1).AddTicks(-1);
 
         var query = _context.Transactions
@@ -58,9 +58,9 @@ public class StatisticsService : IStatisticsService
 
     public async Task<CategoryTrendDto> GetCategoryTrendAsync(long categoryId, int months)
     {
-        var endDate = DateTime.UtcNow;
+        var endDate = DateTime.Now;
         var startDate = endDate.AddMonths(-months + 1);
-        startDate = new DateTime(startDate.Year, startDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        startDate = new DateTime(startDate.Year, startDate.Month, 1);
 
         var category = await _context.Categories.FindAsync(categoryId);
 
@@ -96,7 +96,7 @@ public class StatisticsService : IStatisticsService
 
     public async Task<IEnumerable<TopCategoryDto>> GetTopCategoriesAsync(TransactionType type, int count, DateTime month)
     {
-        var startDate = new DateTime(month.Year, month.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var startDate = new DateTime(month.Year, month.Month, 1);
         var endDate = startDate.AddMonths(1).AddTicks(-1);
 
         var transactions = await _context.Transactions
