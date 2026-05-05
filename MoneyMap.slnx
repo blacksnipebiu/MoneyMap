@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MoneyMap.App/MoneyMap.App.csproj" />
+    <Project Path="src/MoneyMap.Core/MoneyMap.Core.csproj" />
+    <Project Path="src/MoneyMap.Data/MoneyMap.Data.csproj" />
+    <Project Path="src/MoneyMap.Import/MoneyMap.Import.csproj" />
+  </Folder>
+  <Project Path="src/MoneyMap.Utils/MoneyMap.Utils.csproj" />
+</Solution>

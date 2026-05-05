@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:MoneyMap.App.Controls"
+             xmlns:services="using:MoneyMap.App.Services"
+             x:Class="MoneyMap.App.Controls.ToastContainer"
+             x:DataType="services:ToastService">
+
+    <!-- Container positioned at bottom center -->
+    <ItemsControl ItemsSource="{Binding Toasts}"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Bottom"
+                  Margin="0,0,0,20">
+        <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="services:ToastItem">
+                <controls:ToastControl DataContext="{Binding}"/>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+</UserControl>

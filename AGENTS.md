@@ -1,26 +1,27 @@
-# Bookkeeping - 跨平台桌面记账应用
+# MoneyMap - 跨平台桌面记账应用
 
 ## 项目结构
 
 ```
 src/
-├── Bookkeeping.Core/       # 核心模型、枚举、接口（无外部依赖）
-├── Bookkeeping.Data/       # EF Core + SQLite 数据访问层
-├── Bookkeeping.Import/     # 账单解析（支付宝CSV、微信Excel）
-└── Bookkeeping.App/        # Avalonia UI 桌面应用
+├── MoneyMap.Core/       # 核心模型、枚举、接口（无外部依赖）
+├── MoneyMap.Data/       # EF Core + SQLite 数据访问层
+├── MoneyMap.Import/     # 账单解析（支付宝CSV、微信Excel）
+├── MoneyMap.Utils/      # 工具类
+└── MoneyMap.App/        # Avalonia UI 桌面应用
 ```
 
 ## 构建命令
 
 ```bash
 # Release 构建（优先）
-dotnet build src/Bookkeeping.App/Bookkeeping.App.csproj -c Release
+dotnet build src/MoneyMap.App/MoneyMap.App.csproj -c Release
 
 # Debug 构建
-dotnet build src/Bookkeeping.App/Bookkeeping.App.csproj
+dotnet build src/MoneyMap.App/MoneyMap.App.csproj
 
 # 运行应用
-dotnet run --project src/Bookkeeping.App/Bookkeeping.App.csproj
+dotnet run --project src/MoneyMap.App/MoneyMap.App.csproj
 ```
 
 ## 架构要点
@@ -31,7 +32,7 @@ dotnet run --project src/Bookkeeping.App/Bookkeeping.App.csproj
 - 注册入口：`App.axaml.cs` 中的 `OnFrameworkInitializationCompleted()`
 
 ### 数据库
-- SQLite，路径：`%LocalAppData%/Bookkeeping/bookkeeping.db`
+- SQLite，路径：`%LocalAppData%/MoneyMap/moneymap.db`
 - 使用 EF Core Code First，无迁移文件，通过 `EnsureCreatedAsync()` 初始化
 - 重置数据库需调用 `SqliteConnection.ClearAllPools()` 释放连接池
 

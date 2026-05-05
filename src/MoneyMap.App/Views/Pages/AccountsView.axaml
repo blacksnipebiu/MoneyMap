@@ -1,0 +1,186 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MoneyMap.App.ViewModels.Pages"
+             xmlns:models="using:MoneyMap.Core.Models"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="MoneyMap.App.Views.Pages.AccountsView"
+             x:DataType="vm:AccountsViewModel">
+
+    <Design.DataContext>
+        <vm:AccountsViewModel/>
+    </Design.DataContext>
+
+    <Grid ColumnDefinitions="*,350" ColumnSpacing="20">
+        <!-- Account List -->
+        <Border Classes="Card" Grid.Column="0">
+            <Grid RowDefinitions="Auto,*">
+                <!-- Header -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+                    <TextBlock Text="账户管理" Classes="Heading"/>
+                    <TextBlock Text="{Binding Accounts.Count, StringFormat='共 {0} 个账户'}" 
+                               VerticalAlignment="Center" Margin="16,0,0,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </StackPanel>
+                
+                <!-- Loading -->
+                <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
+                            IsVisible="{Binding IsLoading}">
+                    <ProgressBar IsIndeterminate="True" Width="100"/>
+                    <TextBlock Text="加载中..." Margin="0,12,0,0" 
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </StackPanel>
+                
+                <!-- Empty State -->
+                <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Spacing="12" IsVisible="{Binding !IsLoading}">
+                    <TextBlock Text="💳" FontSize="48" HorizontalAlignment="Center"
+                               IsVisible="{Binding Accounts.Count, Converter={StaticResource CountToVisibilityConverter}}"/>
+                    <TextBlock Text="暂无账户" Classes="Title" HorizontalAlignment="Center"
+                               IsVisible="{Binding Accounts.Count, Converter={StaticResource CountToVisibilityConverter}}"/>
+                    <TextBlock Text="点击右侧添加账户" Classes="Subtitle" HorizontalAlignment="Center"
+                               IsVisible="{Binding Accounts.Count, Converter={StaticResource CountToVisibilityConverter}}"/>
+                </StackPanel>
+                
+                <!-- Account List -->
+                <ScrollViewer Grid.Row="1" IsVisible="{Binding Accounts.Count, Converter={StaticResource HasItemsConverter}}">
+                    <ItemsControl ItemsSource="{Binding Accounts}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="models:Account">
+                                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                                        Padding="16,12" Background="Transparent">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <!-- Source Icon -->
+                                        <Border Grid.Column="0" Width="44" Height="44" CornerRadius="22"
+                                                Background="#EEF2FF" Margin="0,0,12,0">
+                                            <TextBlock Text="{Binding Source, Converter={StaticResource DataSourceIconConverter}}"
+                                                       FontSize="20" HorizontalAlignment="Center" 
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                        
+                                        <!-- Info -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                            <TextBlock Text="{Binding Name}" FontWeight="Medium" FontSize="15"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding Source, Converter={StaticResource DataSourceNameConverter}}"
+                                                           Classes="Caption"/>
+                                                <TextBlock Text="{Binding LastFourDigits, StringFormat='尾号 {0}'}" 
+                                                           Classes="Caption"
+                                                           IsVisible="{Binding LastFourDigits, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                        
+                                        <!-- Actions -->
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                                            <Button Classes="Icon" Content="✏️" 
+                                                    VerticalAlignment="Center"
+                                                    Command="{Binding $parent[ItemsControl].((vm:AccountsViewModel)DataContext).StartEditCommand}"
+                                                    CommandParameter="{Binding}"/>
+                                            <Button Classes="Icon" Content="🗑️" 
+                                                    VerticalAlignment="Center"
+                                                    Command="{Binding $parent[ItemsControl].((vm:AccountsViewModel)DataContext).DeleteCommand}"
+                                                    CommandParameter="{Binding}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+        
+        <!-- Add/Edit Panel -->
+        <Border Classes="Card" Grid.Column="1">
+            <StackPanel Spacing="16">
+                <!-- Add New Account -->
+                <StackPanel IsVisible="{Binding !IsAddingNew}">
+                    <TextBlock Text="添加账户" Classes="Title" Margin="0,0,0,16"/>
+                    <Button Classes="Primary" Content="➕ 新建账户" HorizontalAlignment="Stretch"
+                            Command="{Binding ShowAddFormCommand}"/>
+                </StackPanel>
+                
+                <!-- Add Form -->
+                <StackPanel IsVisible="{Binding IsAddingNew}" Spacing="12">
+                    <TextBlock Text="新建账户" Classes="Title"/>
+                    
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="账户名称" Classes="Label"/>
+                        <TextBox Text="{Binding NewAccountName}" PlaceholderText="如：张三的支付宝"/>
+                    </StackPanel>
+                    
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="账户类型" Classes="Label"/>
+                        <ComboBox ItemsSource="{Binding SourceOptions}" 
+                                  SelectedItem="{Binding NewAccountSource}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock>
+                                        <Run Text="{Binding Converter={StaticResource DataSourceIconConverter}}"/>
+                                        <Run Text=" "/>
+                                        <Run Text="{Binding Converter={StaticResource DataSourceNameConverter}}"/>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="尾号后四位（可选）" Classes="Label"/>
+                        <TextBox Text="{Binding NewAccountLastFourDigits}" PlaceholderText="如：1234"/>
+                    </StackPanel>
+                    
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,8,0,0">
+                        <Button Grid.Column="0" Classes="Secondary" Content="取消" 
+                                HorizontalAlignment="Stretch" Command="{Binding CancelAddCommand}"/>
+                        <Button Grid.Column="1" Classes="Primary" Content="添加" 
+                                HorizontalAlignment="Stretch" Command="{Binding AddAccountCommand}"/>
+                    </Grid>
+                </StackPanel>
+                
+                <!-- Edit Form -->
+                <StackPanel IsVisible="{Binding EditingAccount, Converter={x:Static ObjectConverters.IsNotNull}}" 
+                            Spacing="12">
+                    <TextBlock Text="编辑账户" Classes="Title"/>
+                    
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="账户名称" Classes="Label"/>
+                        <TextBox Text="{Binding EditAccountName}" PlaceholderText="如：张三的支付宝"/>
+                    </StackPanel>
+                    
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="账户类型" Classes="Label"/>
+                        <ComboBox ItemsSource="{Binding SourceOptions}" 
+                                  SelectedItem="{Binding EditAccountSource}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock>
+                                        <Run Text="{Binding Converter={StaticResource DataSourceIconConverter}}"/>
+                                        <Run Text=" "/>
+                                        <Run Text="{Binding Converter={StaticResource DataSourceNameConverter}}"/>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="尾号后四位（可选）" Classes="Label"/>
+                        <TextBox Text="{Binding EditAccountLastFourDigits}" PlaceholderText="如：1234"/>
+                    </StackPanel>
+                    
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,8,0,0">
+                        <Button Grid.Column="0" Classes="Secondary" Content="取消" 
+                                HorizontalAlignment="Stretch" Command="{Binding CancelEditCommand}"/>
+                        <Button Grid.Column="1" Classes="Primary" Content="保存" 
+                                HorizontalAlignment="Stretch" Command="{Binding SaveEditCommand}"/>
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+
+</UserControl>

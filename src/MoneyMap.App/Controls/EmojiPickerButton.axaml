@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MoneyMap.App.Controls.EmojiPickerButton"
+             x:DataType="sys:String"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             MinWidth="60" MinHeight="40">
+
+    <Border Classes="Card" Padding="12,8" Cursor="Hand">
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+            <TextBlock Text="{Binding}" FontSize="20" VerticalAlignment="Center"/>
+        </StackPanel>
+    </Border>
+
+</UserControl>
