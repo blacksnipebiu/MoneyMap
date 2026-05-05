@@ -1,20 +1,9 @@
 using Bookkeeping.Core.Enums;
 using Bookkeeping.Core.Models;
+using Bookkeeping.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bookkeeping.Data.Repositories;
-
-public interface ICategoryRepository
-{
-    Task<IEnumerable<Category>> GetAllAsync();
-    Task<Category?> GetByIdAsync(long id);
-    Task<Category?> GetByNameAsync(string name);
-    Task AddAsync(Category category);
-    Task UpdateAsync(Category category);
-    Task DeleteAsync(long id);
-    Task<IEnumerable<Category>> GetByTypeAsync(TransactionType type);
-    Task<IEnumerable<Category>> GetRootCategoriesAsync();
-}
 
 public class CategoryRepository : ICategoryRepository
 {

@@ -116,8 +116,12 @@
                         </StackPanel>
 
                         <StackPanel Spacing="8">
-                            <TextBlock Text="图标 (可选)" Classes="Label"/>
-                            <TextBox Text="{Binding SelectedIcon}" PlaceholderText="输入 emoji 图标" MaxLength="10"/>
+                            <TextBlock Text="图标" Classes="Label"/>
+                            <Button Classes="Secondary" Padding="12" HorizontalAlignment="Left"
+                                    Command="{Binding SelectIconCommand}" ToolTip.Tip="点击选择图标">
+                                <TextBlock Text="{Binding SelectedIcon}" FontSize="32"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
                         </StackPanel>
 
                         <Button Classes="Primary" Content="添加分类"
@@ -135,8 +139,12 @@
                         </StackPanel>
 
                         <StackPanel Spacing="8">
-                            <TextBlock Text="图标 (可选)" Classes="Label"/>
-                            <TextBox Text="{Binding EditingIcon}" PlaceholderText="输入 emoji 图标" MaxLength="10"/>
+                            <TextBlock Text="图标" Classes="Label"/>
+                            <Button Classes="Secondary" Padding="12" HorizontalAlignment="Left"
+                                    Command="{Binding SelectEditingIconCommand}" ToolTip.Tip="点击选择图标">
+                                <TextBlock Text="{Binding EditingIcon}" FontSize="32"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Spacing="8">

@@ -54,16 +54,12 @@
 
                     <!-- Icon -->
                     <StackPanel Spacing="8">
-                        <TextBlock Text="图标 (可选)" Classes="Label"/>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Border Classes="Card" Padding="12,8" MinWidth="60">
-                                <TextBlock Text="{Binding SelectedIcon, TargetNullValue='-'}"
-                                           FontSize="24"
-                                           HorizontalAlignment="Center"/>
-                            </Border>
-                            <Button Classes="Secondary" Content="选择图标"
-                                    Click="OnSelectIconClick"/>
-                        </StackPanel>
+                        <TextBlock Text="图标" Classes="Label"/>
+                        <Button Classes="Secondary" Padding="12" HorizontalAlignment="Left"
+                                Click="OnSelectIconClick" ToolTip.Tip="点击选择图标">
+                            <TextBlock Text="{Binding SelectedIcon}" FontSize="32"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
                     </StackPanel>
 
                     <!-- Sort Order (read-only, edit mode only) -->

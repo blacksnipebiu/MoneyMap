@@ -99,7 +99,7 @@
 
             <!-- Mapping Step -->
             <Border Classes="Card" IsVisible="{Binding IsMappingStep}" VerticalAlignment="Stretch">
-                <Grid RowDefinitions="Auto,Auto,Auto,*">
+                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
                     <TextBlock Grid.Row="0" Text="字段映射" FontWeight="SemiBold" FontSize="16"/>
                     <TextBlock Grid.Row="1" Text="检查来源字段到我们系统的映射关系，调整分类映射后确认继续"
                                Classes="Caption" Opacity="0.7" TextWrapping="Wrap" Margin="0,4,0,0"/>
@@ -116,7 +116,7 @@
                                 Command="{Binding ShowPaymentMethodMappingCommand}"/>
                     </StackPanel>
 
-                    <!-- Mapping panels container -->
+                    <!-- Mapping panels container (scrollable) -->
                     <ScrollViewer Grid.Row="3">
                         <StackPanel Spacing="16" Margin="0,16,0,0">
 
@@ -346,18 +346,22 @@
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
-
-                            <!-- Confirm/Cancel buttons -->
-                            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,8,0,0">
-                                <Button Classes="Primary" Content="确认映射，继续预览" 
-                                        Command="{Binding ConfirmMappingCommand}"
-                                        IsEnabled="{Binding IsParsing, Converter={x:Static BoolConverters.Not}}"/>
-                                <Button Classes="Secondary" Content="取消" 
-                                        Command="{Binding ClearFileCommand}"
-                                        IsEnabled="{Binding IsParsing, Converter={x:Static BoolConverters.Not}}"/>
-                            </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
+
+                    <!-- Fixed bottom buttons -->
+                    <Border Grid.Row="4" Background="{DynamicResource CardBackgroundBrush}" 
+                            Padding="0,16,0,0" Margin="0,12,0,0"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right">
+                            <Button Classes="Secondary" Content="取消" 
+                                    Command="{Binding ClearFileCommand}"
+                                    IsEnabled="{Binding IsParsing, Converter={x:Static BoolConverters.Not}}"/>
+                            <Button Classes="Primary" Content="确认映射，继续预览" 
+                                    Command="{Binding ConfirmMappingCommand}"
+                                    IsEnabled="{Binding IsParsing, Converter={x:Static BoolConverters.Not}}"/>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Border>
         </Grid>

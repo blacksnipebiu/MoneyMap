@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Bookkeeping.Core.Enums;
 using Bookkeeping.Core.Models;
-using Bookkeeping.Data.Repositories;
+using Bookkeeping.Core.Repositories;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;

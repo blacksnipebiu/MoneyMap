@@ -79,13 +79,13 @@ public class WeChatPayParser : IRecordParser
                         continue;
                     }
 
-                    if (!DateTime.TryParseExact(timeStr, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture,
-                        DateTimeStyles.None, out var transactionTime))
+                    if (!TryParseDateTime(timeStr, out var transactionTime))
                     {
                         result.Errors.Add(new ParseError
                         {
                             RowNumber = i + 1,
-                            ErrorMessage = $"Cannot parse date: {timeStr}"
+                            ErrorMessage = $"Cannot parse date: {timeStr}",
+                            FieldName = "TransactionTime"
                         });
                         continue;
                     }
@@ -238,5 +238,35 @@ public class WeChatPayParser : IRecordParser
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// 尝试解析日期时间，支持多种格式
+    /// </summary>
+    private static bool TryParseDateTime(string input, out DateTime result)
+    {
+        result = default;
+        if (string.IsNullOrWhiteSpace(input))
+            return false;
+
+        // 支持的日期格式
+        var formats = new[]
+        {
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy/MM/dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm",
+            "yyyy/MM/dd HH:mm",
+            "yyyy-MM-dd",
+            "yyyy/MM/dd"
+        };
+
+        foreach (var format in formats)
+        {
+            if (DateTime.TryParseExact(input, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out result))
+                return true;
+        }
+
+        // 最后尝试自动解析
+        return DateTime.TryParse(input, CultureInfo.InvariantCulture, DateTimeStyles.None, out result);
     }
 }

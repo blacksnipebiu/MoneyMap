@@ -117,20 +117,22 @@ public class AlipayParser : IRecordParser
                         {
                             RowNumber = rowNum,
                             RawLine = rawLine,
-                            ErrorMessage = $"Cannot parse amount: {amountStr}"
+                            ErrorMessage = $"无法解析金额: {amountStr}",
+                            FieldName = "Amount",
+                            RawValue = amountStr
                         });
                         continue;
                     }
 
                     var timeStr = csv.GetField<string>(AlipayFieldMapping.TransactionTime)?.Trim() ?? "";
-                    if (!DateTime.TryParseExact(timeStr, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture,
-                        DateTimeStyles.None, out var transactionTime))
+                    if (!TryParseDateTime(timeStr, out var transactionTime))
                     {
                         result.Errors.Add(new ParseError
                         {
                             RowNumber = rowNum,
                             RawLine = rawLine,
-                            ErrorMessage = $"Cannot parse date: {timeStr}"
+                            ErrorMessage = $"Cannot parse date: {timeStr}",
+                            FieldName = "TransactionTime"
                         });
                         continue;
                     }
@@ -172,7 +174,8 @@ public class AlipayParser : IRecordParser
                     result.Errors.Add(new ParseError
                     {
                         RowNumber = rowNum,
-                        ErrorMessage = ex.Message
+                        ErrorMessage = $"解析行失败: {ex.Message}",
+                        FieldName = "Row"
                     });
                 }
                 finally
@@ -246,25 +249,61 @@ public class AlipayParser : IRecordParser
         return currentType;
     }
 
-    private (List<string> lines, Encoding encoding) ReadAllLines(Stream stream)
+private (List<string> lines, Encoding encoding) ReadAllLines(Stream stream)
     {
         // Try UTF-8 first
         stream.Position = 0;
         using (var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true))
         {
             var content = reader.ReadToEnd();
-            if (!content.Contains('\0') && !content.Contains('�'))
+            // Check for valid UTF-8: no replacement characters and reasonable Chinese character ratio
+            if (!content.Contains('\0') && !content.Contains('\uFFFD'))
             {
-                return (content.Split('\n').ToList(), Encoding.UTF8);
+                // Additional check: if content has Chinese characters, verify they're valid
+                var chineseCount = content.Count(c => c >= 0x4E00 && c <= 0x9FFF);
+                if (chineseCount > 0 || content.Length < 100)
+                {
+                    return (content.Split('\n').ToList(), Encoding.UTF8);
+                }
             }
         }
 
-        // Fall back to GBK
+        // Fall back to GBK (common for older Alipay exports)
         stream.Position = 0;
         using (var reader = new StreamReader(stream, Encoding.GetEncoding("GBK"), leaveOpen: true))
         {
             var content = reader.ReadToEnd();
             return (content.Split('\n').ToList(), Encoding.GetEncoding("GBK"));
         }
+    }
+
+    /// <summary>
+    /// 尝试解析日期时间，支持多种格式
+    /// </summary>
+    private static bool TryParseDateTime(string input, out DateTime result)
+    {
+        result = default;
+        if (string.IsNullOrWhiteSpace(input))
+            return false;
+
+        // 支持的日期格式
+        var formats = new[]
+        {
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy/MM/dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm",
+            "yyyy/MM/dd HH:mm",
+            "yyyy-MM-dd",
+            "yyyy/MM/dd"
+        };
+
+        foreach (var format in formats)
+        {
+            if (DateTime.TryParseExact(input, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out result))
+                return true;
+        }
+
+        // 最后尝试自动解析
+        return DateTime.TryParse(input, CultureInfo.InvariantCulture, DateTimeStyles.None, out result);
     }
 }

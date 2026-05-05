@@ -1,15 +1,8 @@
 using Bookkeeping.Core.Models;
+using Bookkeeping.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bookkeeping.Data.Repositories;
-
-public interface IImportRecordRepository
-{
-    Task<ImportRecord?> GetByIdAsync(long id);
-    Task<IEnumerable<ImportRecord>> GetRecentAsync(int limit = 20);
-    Task AddAsync(ImportRecord record);
-    Task UpdateAsync(ImportRecord record);
-}
 
 public class ImportRecordRepository : IImportRecordRepository
 {

@@ -2,9 +2,12 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Bookkeeping.Core.Enums;
 using Bookkeeping.Core.Models;
 using Bookkeeping.Core.Services;
+using Bookkeeping.App.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +16,11 @@ namespace Bookkeeping.App.ViewModels;
 
 public partial class CategoriesViewModel : ViewModelBase
 {
+    public CategoriesViewModel()
+    {
+        _ = LoadCategoriesAsync();
+    }
+
     #region Properties
 
     [ObservableProperty]
@@ -30,8 +38,18 @@ public partial class CategoriesViewModel : ViewModelBase
     [ObservableProperty]
     private TransactionType _newCategoryType = TransactionType.Expense;
 
+    /// <summary>
+    /// 默认图标
+    /// </summary>
+    private const string DefaultIcon = "🏷️";
+
     [ObservableProperty]
-    private string? _selectedIcon;
+    private string? _selectedIcon = DefaultIcon;
+
+    /// <summary>
+    /// Display text for the selected icon (emoji or "选择图标")
+    /// </summary>
+    public string SelectedIconDisplay => SelectedIcon ?? "选择图标";
 
     [ObservableProperty]
     private bool _isLoading;
@@ -47,6 +65,11 @@ public partial class CategoriesViewModel : ViewModelBase
 
     [ObservableProperty]
     private string? _editingIcon;
+
+    /// <summary>
+    /// Display text for the editing icon (emoji or "选择图标")
+    /// </summary>
+    public string EditingIconDisplay => EditingIcon ?? DefaultIcon;
 
     /// <summary>
     /// Whether to show the delete-reassign dialog
@@ -189,7 +212,7 @@ public partial class CategoriesViewModel : ViewModelBase
 
             // Reset form
             NewCategoryName = string.Empty;
-            SelectedIcon = null;
+            SelectedIcon = DefaultIcon;
 
             App.ToastService.ShowSuccess($"已添加分类：{created.Name}");
         }
@@ -405,6 +428,42 @@ public partial class CategoriesViewModel : ViewModelBase
         EditingIcon = null;
         IsEditing = false;
         ErrorMessage = null;
+    }
+
+    [RelayCommand]
+    private async Task SelectIconAsync()
+    {
+        var mainWindow = Application.Current?.ApplicationLifetime is
+            Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+
+        if (mainWindow == null) return;
+
+        var selected = await EmojiPickerDialog.ShowDialogAsync(mainWindow, SelectedIcon);
+        if (selected != null)
+        {
+            SelectedIcon = selected;
+            OnPropertyChanged(nameof(SelectedIconDisplay));
+        }
+    }
+
+    [RelayCommand]
+    private async Task SelectEditingIconAsync()
+    {
+        var mainWindow = Application.Current?.ApplicationLifetime is
+            Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+
+        if (mainWindow == null) return;
+
+        var selected = await EmojiPickerDialog.ShowDialogAsync(mainWindow, EditingIcon);
+        if (selected != null)
+        {
+            EditingIcon = selected;
+            OnPropertyChanged(nameof(EditingIconDisplay));
+        }
     }
 
     [RelayCommand]

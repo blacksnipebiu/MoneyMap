@@ -10,7 +10,9 @@ using Avalonia.Platform.Storage;
 using Bookkeeping.App.Services;
 using Bookkeeping.Core.Enums;
 using Bookkeeping.Core.Models;
-using Bookkeeping.Data.Repositories;
+using Bookkeeping.Core.Repositories;
+using Bookkeeping.Core.Services;
+using Bookkeeping.Data.Services;
 using Bookkeeping.Import;
 using Bookkeeping.Import.Detection;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -1576,51 +1578,31 @@ public partial class ImportViewModel : ViewModelBase
 
         IsImporting = true;
         ImportProgress = 0;
-        ImportStatus = "正在保存到数据库...";
+        ImportStatus = "正在导入...";
 
         try
         {
             using var scope = App.Services.CreateScope();
-            var transactionRepo = scope.ServiceProvider.GetRequiredService<ITransactionRepository>();
-            var importRecordRepo = scope.ServiceProvider.GetRequiredService<IImportRecordRepository>();
+            var importService = scope.ServiceProvider.GetRequiredService<IImportOrchestrationService>();
+            
+            var progress = new Progress<ImportProgressInfo>(info =>
+            {
+                ImportProgress = info.Progress;
+                ImportStatus = info.Status;
+            });
 
-            // Deduplicate by SourceTransactionId
-            var newTransactions = selectedTransactions
-                .Where(t => string.IsNullOrEmpty(t.SourceTransactionId) ||
-                            !transactionRepo.ExistsBySourceTransactionIdAsync(t.SourceTransactionId).GetAwaiter().GetResult())
-                .ToList();
+            var result = await importService.ExecuteImportAsync(
+                selectedTransactions,
+                SelectedAccount,
+                FileName!,
+                _parseResult.DetectedSource,
+                progress);
 
-            var duplicateCount = selectedTransactions.Count - newTransactions.Count;
             var excludedCount = _allTransactions.Count - selectedTransactions.Count;
 
-            if (newTransactions.Count > 0)
-            {
-                // Create import record
-                var importRecord = new ImportRecord
-                {
-                    FileName = FileName!,
-                    Source = _parseResult.DetectedSource,
-                    ImportTime = DateTime.Now,
-                    TotalRows = _parseResult.TotalRows,
-                    ImportedCount = newTransactions.Count,
-                    SkippedCount = _parseResult.SkippedCount + duplicateCount + excludedCount,
-                    ErrorCount = _parseResult.Errors.Count
-                };
-
-                // Assign import record and account to each transaction
-                foreach (var t in newTransactions)
-                {
-                    t.ImportRecord = importRecord;
-                    t.AccountId = SelectedAccount.Id;
-                }
-
-                await transactionRepo.AddRangeAsync(newTransactions);
-                ImportProgress = 90;
-            }
-
-            ImportedCount = newTransactions.Count;
-            SkippedCount = _parseResult.SkippedCount + duplicateCount;
-            ErrorCount = _parseResult.Errors.Count;
+            ImportedCount = result.ImportedCount;
+            SkippedCount = result.SkippedCount + excludedCount;
+            ErrorCount = result.ValidationErrorCount + _parseResult.Errors.Count;
             ImportProgress = 100;
             ImportCompleted = true;
             HasParsedData = false;
@@ -1628,11 +1610,17 @@ public partial class ImportViewModel : ViewModelBase
             var statusParts = new System.Collections.Generic.List<string>();
             if (ImportedCount > 0) statusParts.Add($"成功导入 {ImportedCount} 条");
             if (excludedCount > 0) statusParts.Add($"用户排除 {excludedCount} 条");
-            if (SkippedCount > 0) statusParts.Add($"跳过 {SkippedCount} 条");
-            if (duplicateCount > 0) statusParts.Add($"重复 {duplicateCount} 条");
-            if (ErrorCount > 0) statusParts.Add($"错误 {ErrorCount} 条");
+            if (result.DuplicateCount > 0) statusParts.Add($"重复 {result.DuplicateCount} 条");
+            if (result.ValidationErrorCount > 0) statusParts.Add($"验证失败 {result.ValidationErrorCount} 条");
+            if (_parseResult.Errors.Count > 0) statusParts.Add($"解析错误 {_parseResult.Errors.Count} 条");
 
             ImportStatus = "导入完成！" + string.Join("，", statusParts);
+
+            // 显示验证警告
+            if (result.ValidationWarnings.Count > 0)
+            {
+                App.ToastService.ShowWarning($"发现 {result.ValidationWarnings.Count} 条警告");
+            }
 
             if (ImportedCount > 0)
             {

@@ -5,6 +5,7 @@ using Bookkeeping.Data.Services;
 using Bookkeeping.Core.Enums;
 using Bookkeeping.Core.Models;
 using Bookkeeping.Core.Services;
+using Bookkeeping.Core.Repositories;
 
 namespace Bookkeeping.Data;
 
@@ -20,6 +21,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IImportRecordRepository, ImportRecordRepository>();
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IImportValidationService, ImportValidationService>();
+        services.AddScoped<IImportOrchestrationService, ImportOrchestrationService>();
+        services.AddScoped<IImportMappingService, ImportMappingService>();
 
         return services;
     }
@@ -29,7 +33,7 @@ public static class ServiceCollectionExtensions
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<BookkeepingDbContext>();
         await context.Database.EnsureCreatedAsync();
-        
+
         // Seed default categories
         await SeedDefaultCategoriesAsync(context);
     }

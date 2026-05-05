@@ -1,21 +1,9 @@
-using Bookkeeping.Core.Enums;
 using Bookkeeping.Core.Models;
+using Bookkeeping.Core.Repositories;
 using Bookkeeping.Core.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bookkeeping.Data.Repositories;
-
-public interface ITransactionRepository
-{
-    Task<Transaction?> GetByIdAsync(long id);
-    Task<PagedResult<Transaction>> GetFilteredAsync(TransactionFilter filter, int page, int pageSize);
-    Task AddAsync(Transaction transaction);
-    Task AddRangeAsync(IEnumerable<Transaction> transactions);
-    Task<bool> ExistsBySourceTransactionIdAsync(string sourceTransactionId);
-    Task<decimal> GetTotalByFilterAsync(TransactionFilter filter);
-    Task UpdateAsync(Transaction transaction);
-    Task DeleteAsync(long id);
-}
 
 public class TransactionRepository : ITransactionRepository
 {
@@ -98,6 +86,15 @@ public class TransactionRepository : ITransactionRepository
     {
         return await _context.Transactions
             .AnyAsync(t => t.SourceTransactionId == sourceTransactionId);
+    }
+
+    public async Task<HashSet<string>> GetExistingSourceIdsAsync(IEnumerable<string> sourceIds)
+    {
+        var existingIds = await _context.Transactions
+            .Where(t => t.SourceTransactionId != null && sourceIds.Contains(t.SourceTransactionId))
+            .Select(t => t.SourceTransactionId!)
+            .ToListAsync();
+        return new HashSet<string>(existingIds);
     }
 
     public async Task<decimal> GetTotalByFilterAsync(TransactionFilter filter)

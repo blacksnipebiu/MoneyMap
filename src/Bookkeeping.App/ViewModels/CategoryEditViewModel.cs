@@ -11,6 +11,11 @@ namespace Bookkeeping.App.ViewModels;
 
 public partial class CategoryEditViewModel : ObservableObject
 {
+    /// <summary>
+    /// 默认图标
+    /// </summary>
+    private const string DefaultIcon = "🏷️";
+
     #region Properties
 
     [ObservableProperty]
@@ -50,7 +55,7 @@ public partial class CategoryEditViewModel : ObservableObject
         EditingCategoryId = null;
         Name = string.Empty;
         Type = defaultType;
-        SelectedIcon = null;
+        SelectedIcon = DefaultIcon;
         SortOrder = 0;
         ErrorMessage = null;
         DialogResult = false;
