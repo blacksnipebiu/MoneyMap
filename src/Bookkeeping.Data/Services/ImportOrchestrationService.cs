@@ -19,6 +19,7 @@ public interface IImportOrchestrationService
         Account account,
         string fileName,
         DataSource source,
+        string? filePath = null,
         IProgress<ImportProgressInfo>? progress = null);
 }
 
@@ -64,6 +65,7 @@ public class ImportOrchestrationService : IImportOrchestrationService
         Account account,
         string fileName,
         DataSource source,
+        string? filePath = null,
         IProgress<ImportProgressInfo>? progress = null)
     {
         var result = new ImportExecutionResult();
@@ -132,6 +134,7 @@ public class ImportOrchestrationService : IImportOrchestrationService
             var importRecord = new ImportRecord
             {
                 FileName = fileName,
+                FilePath = filePath,
                 Source = source,
                 ImportTime = DateTime.Now,
                 TotalRows = transactionList.Count,

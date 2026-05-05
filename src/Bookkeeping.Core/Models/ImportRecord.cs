@@ -6,6 +6,7 @@ public class ImportRecord
 {
     public long Id { get; set; }
     public string FileName { get; set; } = string.Empty;
+    public string? FilePath { get; set; }
     public DataSource Source { get; set; }
     public DateTime ImportTime { get; set; }
     public int TotalRows { get; set; }

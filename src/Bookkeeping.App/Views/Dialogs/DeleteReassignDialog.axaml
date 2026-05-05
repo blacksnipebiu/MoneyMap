@@ -1,0 +1,61 @@
+<Window xmlns="https://github.com/avaloniaui"
+         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         xmlns:vm="using:Bookkeeping.App.ViewModels.Dialogs"
+         xmlns:pages="using:Bookkeeping.App.ViewModels.Pages"
+         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+         mc:Ignorable="d"
+         x:Class="Bookkeeping.App.Views.Dialogs.DeleteReassignDialog"
+         x:DataType="vm:DeleteReassignViewModel"
+         Title="删除分类"
+         Width="400"
+         SizeToContent="Height"
+         WindowStartupLocation="CenterOwner"
+         CanResize="False">
+
+    <Design.DataContext>
+        <vm:DeleteReassignViewModel/>
+    </Design.DataContext>
+
+    <Border Classes="Card" Margin="0" Padding="24">
+        <StackPanel Spacing="16">
+            <TextBlock Text="删除分类" Classes="Title"/>
+
+            <TextBlock TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}">
+                <Run Text="分类 '"/>
+                <Run Text="{Binding CategoryName}"/>
+                <Run Text="' 下有 "/>
+                <Run Text="{Binding TransactionCount}"/>
+                <Run Text=" 条交易记录，请选择目标分类进行转移"/>
+            </TextBlock>
+
+            <StackPanel Spacing="8">
+                <TextBlock Text="目标分类" Classes="Label"/>
+                <ComboBox ItemsSource="{Binding AvailableTargets}"
+                          SelectedItem="{Binding SelectedTarget}"
+                          HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="pages:CategoriesViewModel+CategoryItemViewModel">
+                            <TextBlock Text="{Binding DisplayName}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="DarkRed"
+                       IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button Classes="Secondary" Content="取消"
+                        Command="{Binding CancelCommand}"
+                        CommandParameter="{Binding $parent[Window]}"/>
+                <Button Classes="Primary" Content="确认转移并删除"
+                        Command="{Binding ConfirmCommand}"
+                        CommandParameter="{Binding $parent[Window]}"
+                        IsEnabled="{Binding CanConfirm}"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

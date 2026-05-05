@@ -12,6 +12,7 @@ public class ImportRecordConfiguration : IEntityTypeConfiguration<ImportRecord>
         builder.Property(i => i.Id).ValueGeneratedOnAdd();
         
         builder.Property(i => i.FileName).HasMaxLength(500).IsRequired();
+        builder.Property(i => i.FilePath).HasMaxLength(1000);
         builder.Property(i => i.ImportTime).IsRequired();
         builder.Property(i => i.TotalRows).IsRequired();
         builder.Property(i => i.ImportedCount).IsRequired();

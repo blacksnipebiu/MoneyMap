@@ -1,0 +1,74 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="using:Bookkeeping.App.Models"
+        x:Class="Bookkeeping.App.Views.Dialogs.EmojiPickerDialog"
+        Title="选择图标"
+        Width="420" Height="480"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Background="{DynamicResource SurfaceBrush}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Category Tabs -->
+        <TabControl x:Name="CategoryTabs" Grid.Row="0" Margin="12,12,12,8"
+                   HorizontalAlignment="Stretch">
+            <TabControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                    <TextBlock Text="{Binding}" Margin="8,4"/>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+        </TabControl>
+
+        <!-- Emoji Grid -->
+        <ScrollViewer Grid.Row="1" Margin="12,0,12,12">
+            <ItemsControl x:Name="EmojiItems" HorizontalAlignment="Stretch">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:EmojiItem">
+                        <Button Classes="EmojiButton"
+                                Tag="{Binding Emoji}"
+                                ToolTip.Tip="{Binding DisplayName}"
+                                Click="OnEmojiClick"
+                                Margin="2">
+                            <TextBlock Text="{Binding Emoji}" FontSize="24"/>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Bottom Buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,0,12,12" Spacing="8">
+            <Button Classes="Secondary" Content="取消" Click="CancelClick" MinWidth="80"/>
+        </StackPanel>
+    </Grid>
+
+    <Window.Styles>
+        <Style Selector="Button.EmojiButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="MinWidth" Value="50"/>
+            <Setter Property="MinHeight" Value="50"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <Style Selector="Button.EmojiButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryLightBrush}"/>
+        </Style>
+
+        <Style Selector="Button.EmojiButton.Selected">
+            <Setter Property="Background" Value="{DynamicResource PrimaryLightBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+        </Style>
+    </Window.Styles>
+</Window>
+

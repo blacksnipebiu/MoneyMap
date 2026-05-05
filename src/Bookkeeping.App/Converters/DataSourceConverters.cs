@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
+using Avalonia.Media;
 using Bookkeeping.Core.Enums;
 
 namespace Bookkeeping.App.Converters;
@@ -47,6 +48,31 @@ public class DataSourceNameConverter : IValueConverter
             };
         }
         return value?.ToString() ?? "";
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public class DataSourceBrushConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is DataSource source)
+        {
+            return source switch
+            {
+                DataSource.Alipay => new SolidColorBrush(Avalonia.Media.Color.FromRgb(0, 160, 233)), // 支付宝蓝
+                DataSource.WeChatPay => new SolidColorBrush(Avalonia.Media.Color.FromRgb(7, 193, 96)), // 微信绿
+                DataSource.BankCard => new SolidColorBrush(Avalonia.Media.Color.FromRgb(59, 130, 246)), // 银行卡蓝
+                DataSource.Manual => new SolidColorBrush(Avalonia.Media.Color.FromRgb(107, 114, 128)), // 灰色
+                DataSource.Other => new SolidColorBrush(Avalonia.Media.Color.FromRgb(156, 163, 175)),
+                _ => new SolidColorBrush(Avalonia.Media.Color.FromRgb(156, 163, 175))
+            };
+        }
+        return new SolidColorBrush(Avalonia.Media.Color.FromRgb(156, 163, 175));
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

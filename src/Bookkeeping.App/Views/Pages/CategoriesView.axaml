@@ -1,0 +1,193 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Bookkeeping.App.ViewModels.Pages"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Bookkeeping.App.Views.Pages.CategoriesView"
+             x:DataType="vm:CategoriesViewModel">
+
+    <Design.DataContext>
+        <vm:CategoriesViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,320" ColumnSpacing="20">
+        <!-- Category List -->
+        <Border Classes="Card" Grid.Column="0" Grid.Row="0">
+            <Grid RowDefinitions="Auto,*">
+                <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,12">
+                    <TextBlock Text="分类管理" Classes="Title"/>
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="DarkRed"
+                               IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                </StackPanel>
+
+                <ScrollViewer Grid.Row="1">
+                    <StackPanel Spacing="16">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="收入分类" Classes="Subtitle"/>
+                            <ItemsControl ItemsSource="{Binding IncomeCategories}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:CategoriesViewModel+CategoryItemViewModel">
+                                        <Border Classes="CategoryItem" Margin="0,2" Padding="8,6">
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
+                                                           VerticalAlignment="Center" FontSize="14"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding TransactionCount, StringFormat=' ({0} 笔)'}"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           VerticalAlignment="Center" FontSize="12"
+                                                           IsVisible="{Binding TransactionCount}"/>
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                                                    <Button Classes="SmallIcon" Command="{Binding $parent[ItemsControl].((vm:CategoriesViewModel)DataContext).MoveUpCommand}"
+                                                            CommandParameter="{Binding}" Content="↑" ToolTip.Tip="上移"/>
+                                                    <Button Classes="SmallIcon" Command="{Binding $parent[ItemsControl].((vm:CategoriesViewModel)DataContext).MoveDownCommand}"
+                                                            CommandParameter="{Binding}" Content="↓" ToolTip.Tip="下移"/>
+                                                    <Button Classes="SmallIcon" Command="{Binding $parent[ItemsControl].((vm:CategoriesViewModel)DataContext).EditCategoryCommand}"
+                                                            CommandParameter="{Binding}" Content="✎" ToolTip.Tip="编辑"/>
+                                                    <Button Classes="SmallIcon" Command="{Binding $parent[ItemsControl].((vm:CategoriesViewModel)DataContext).DeleteCategoryCommand}"
+                                                            CommandParameter="{Binding}" Content="✕" ToolTip.Tip="删除"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="暂无收入分类" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       IsVisible="{Binding !IncomeCategories.Count}" Margin="8,4"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="支出分类" Classes="Subtitle" Margin="0,8,0,0"/>
+                            <ItemsControl ItemsSource="{Binding ExpenseCategories}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:CategoriesViewModel+CategoryItemViewModel">
+                                        <Border Classes="CategoryItem" Margin="0,2" Padding="8,6">
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
+                                                           VerticalAlignment="Center" FontSize="14"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding TransactionCount, StringFormat=' ({0} 笔)'}"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           VerticalAlignment="Center" FontSize="12"
+                                                           IsVisible="{Binding TransactionCount}"/>
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                                                    <Button Classes="SmallIcon" Command="{Binding $parent[ItemsControl].((vm:CategoriesViewModel)DataContext).MoveUpCommand}"
+                                                            CommandParameter="{Binding}" Content="↑" ToolTip.Tip="上移"/>
+                                                    <Button Classes="SmallIcon" Command="{Binding $parent[ItemsControl].((vm:CategoriesViewModel)DataContext).MoveDownCommand}"
+                                                            CommandParameter="{Binding}" Content="↓" ToolTip.Tip="下移"/>
+                                                    <Button Classes="SmallIcon" Command="{Binding $parent[ItemsControl].((vm:CategoriesViewModel)DataContext).EditCategoryCommand}"
+                                                            CommandParameter="{Binding}" Content="✎" ToolTip.Tip="编辑"/>
+                                                    <Button Classes="SmallIcon" Command="{Binding $parent[ItemsControl].((vm:CategoriesViewModel)DataContext).DeleteCategoryCommand}"
+                                                            CommandParameter="{Binding}" Content="✕" ToolTip.Tip="删除"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="暂无支出分类" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       IsVisible="{Binding !ExpenseCategories.Count}" Margin="8,4"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Add/Edit Form -->
+        <Border Classes="Card" Grid.Column="1" Grid.Row="0">
+            <ScrollViewer>
+                <StackPanel Spacing="16">
+                    <StackPanel Spacing="12" IsVisible="{Binding !IsEditing}">
+                        <TextBlock Text="添加分类" Classes="Title"/>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="分类名称" Classes="Label"/>
+                            <TextBox Text="{Binding NewCategoryName}" PlaceholderText="输入分类名称" MaxLength="20"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="分类类型" Classes="Label"/>
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <RadioButton GroupName="NewCategoryType" Content="支出"
+                                             IsChecked="{Binding NewCategoryType, Converter={StaticResource EnumToBoolConverter}, ConverterParameter=Expense}"/>
+                                <RadioButton GroupName="NewCategoryType" Content="收入"
+                                             IsChecked="{Binding NewCategoryType, Converter={StaticResource EnumToBoolConverter}, ConverterParameter=Income}"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="图标" Classes="Label"/>
+                            <Button Classes="Secondary" Padding="12" HorizontalAlignment="Left"
+                                    Command="{Binding SelectIconCommand}" ToolTip.Tip="点击选择图标">
+                                <TextBlock Text="{Binding SelectedIcon}" FontSize="32"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+                        </StackPanel>
+
+                        <Button Classes="Primary" Content="添加分类"
+                                Command="{Binding AddCategoryCommand}"
+                                HorizontalAlignment="Stretch"
+                                IsEnabled="{Binding !IsLoading}"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="12" IsVisible="{Binding IsEditing}">
+                        <TextBlock Text="编辑分类" Classes="Title"/>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="分类名称" Classes="Label"/>
+                            <TextBox Text="{Binding EditingName}" PlaceholderText="输入分类名称" MaxLength="20"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="图标" Classes="Label"/>
+                            <Button Classes="Secondary" Padding="12" HorizontalAlignment="Left"
+                                    Command="{Binding SelectEditingIconCommand}" ToolTip.Tip="点击选择图标">
+                                <TextBlock Text="{Binding EditingIcon}" FontSize="32"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Classes="Primary" Content="保存"
+                                    Command="{Binding UpdateCategoryCommand}"
+                                    IsEnabled="{Binding !IsLoading}"/>
+                            <Button Classes="Secondary" Content="取消"
+                                    Command="{Binding CancelEditCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Delete Reassign Dialog Overlay -->
+        <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0"
+                IsVisible="{Binding ShowDeleteReassignDialog}"
+                Background="#80000000">
+            <Border Classes="Card" Width="400" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="该分类有交易记录" Classes="Title"/>
+                    <TextBlock TextWrapping="Wrap"
+                               Text="{Binding CategoryToDelete.Name, StringFormat='「{0}」分类下存在交易记录，请选择要转移到的目标分类：'}"/>
+
+                    <ComboBox ItemsSource="{Binding ExpenseCategories}"
+                              SelectedItem="{Binding ReassignTargetCategory}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CategoriesViewModel+CategoryItemViewModel">
+                                <TextBlock Text="{Binding DisplayName}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                        <Button Classes="Secondary" Content="取消"
+                                Command="{Binding CloseDeleteReassignDialogCommand}"/>
+                        <Button Classes="Primary" Content="确认转移并删除"
+                                Command="{Binding ConfirmDeleteWithReassignCommand}"
+                                IsEnabled="{Binding ReassignTargetCategory, Converter={StaticResource NotNullToBoolConverter}}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

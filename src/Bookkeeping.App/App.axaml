@@ -20,12 +20,14 @@
         <converters:TransactionStatusColorConverter x:Key="TransactionStatusColorConverter"/>
         <converters:DataSourceIconConverter x:Key="DataSourceIconConverter"/>
         <converters:DataSourceNameConverter x:Key="DataSourceNameConverter"/>
+        <converters:DataSourceBrushConverter x:Key="DataSourceBrushConverter"/>
         <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
         <converters:HasItemsConverter x:Key="HasItemsConverter"/>
         <converters:IsGreaterThanZeroConverter x:Key="IsGreaterThanZero"/>
         <converters:EnumToBoolConverter x:Key="EnumToBoolConverter"/>
         <converters:NotNullToBoolConverter x:Key="NotNullToBoolConverter"/>
         <converters:NullToBoolConverter x:Key="NullToBoolConverter"/>
+        <converters:IntToSelectionConverter x:Key="IntToSelectionConverter"/>
     </Application.Resources>
     
     <Application.Styles>

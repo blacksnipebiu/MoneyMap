@@ -33,6 +33,7 @@
     <ProjectReference Include="..\Bookkeeping.Core\Bookkeeping.Core.csproj" />
     <ProjectReference Include="..\Bookkeeping.Data\Bookkeeping.Data.csproj" />
     <ProjectReference Include="..\Bookkeeping.Import\Bookkeeping.Import.csproj" />
+    <ProjectReference Include="..\Bookkeeping.Utils\Bookkeeping.Utils.csproj" />
   </ItemGroup>
 
 </Project>

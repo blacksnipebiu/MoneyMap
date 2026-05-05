@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Bookkeeping.App.ViewModels.Pages"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Bookkeeping.App.Views.Pages.DashboardView"
+             x:DataType="vm:DashboardViewModel">
+
+    <Design.DataContext>
+        <vm:DashboardViewModel/>
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <StackPanel Spacing="20">
+            <TextBlock Text="仪表盘" Classes="Heading"/>
+            
+            <!-- Summary Cards -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="20">
+                <!-- Income Card -->
+                <Border Classes="Card" Grid.Column="0">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="本月收入" Classes="Subtitle"/>
+                        <TextBlock Text="{Binding MonthIncome, StringFormat='¥{0:N2}'}" 
+                                   FontSize="28" FontWeight="Bold" Foreground="#10B981"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Expense Card -->
+                <Border Classes="Card" Grid.Column="1">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="本月支出" Classes="Subtitle"/>
+                        <TextBlock Text="{Binding MonthExpense, StringFormat='¥{0:N2}'}" 
+                                   FontSize="28" FontWeight="Bold" Foreground="#EF4444"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Balance Card -->
+                <Border Classes="Card" Grid.Column="2">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="本月结余" Classes="Subtitle"/>
+                        <TextBlock Text="{Binding MonthBalance, StringFormat='¥{0:N2}'}" 
+                                   FontSize="28" FontWeight="Bold" Foreground="#4F46E5"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+            
+            <!-- Transaction Count -->
+            <Border Classes="Card">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <TextBlock Text="📊" FontSize="20"/>
+                    <TextBlock Text="本月共" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding TransactionCount}" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="笔交易" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Recent Transactions Placeholder -->
+            <Border Classes="Card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="最近交易" Classes="Title"/>
+                    <TextBlock Text="暂无数据，请先导入账单" Classes="Subtitle"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>
+

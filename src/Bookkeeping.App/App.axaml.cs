@@ -57,9 +57,10 @@ public partial class App : Application
             // Initialize database
             Services.InitializeDatabaseAsync().Wait();
             
+            var scopeFactory = Services.GetRequiredService<IServiceScopeFactory>();
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(),
+                DataContext = new MainWindowViewModel(scopeFactory),
             };
         }
 
