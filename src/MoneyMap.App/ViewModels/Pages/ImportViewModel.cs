@@ -161,17 +161,37 @@ public partial class ImportViewModel : ViewModelBase
     private bool _hasParsedData;
 
     /// <summary>
-    /// 是否处于字段映射步骤（解析后、预览前）
+    /// （兼容原 XAML）映射步骤状态 = 弹窗是否打开
     /// </summary>
-    [ObservableProperty]
-    private bool _isMappingStep;
+    private bool _isMappingStepValue;
+
+    public bool IsMappingStep
+    {
+        get => _isMappingStepValue;
+        set
+        {
+            if (_isMappingStepValue != value)
+            {
+                _isMappingStepValue = value;
+                OnPropertyChanged(nameof(IsMappingStep));
+                OnPropertyChanged(nameof(IsMappingDialogOpen));
+                OnPropertyChanged(nameof(IsFileSelectionStep));
+            }
+        }
+    }
+
+    /// <summary>
+    /// 映射设置弹窗是否打开（绑定到原 IsMappingStep）
+    /// </summary>
+    public bool IsMappingDialogOpen
+    {
+        get => _isMappingStepValue;
+        set => IsMappingStep = value;
+    }
 
     public bool IsFileSelectionStep => !IsMappingStep && !HasParsedData && !ImportCompleted;
 
-    partial void OnIsMappingStepChanged(bool value) => OnPropertyChanged(nameof(IsFileSelectionStep));
-
     partial void OnHasParsedDataChanged(bool value) => OnPropertyChanged(nameof(IsFileSelectionStep));
-
     partial void OnImportCompletedChanged(bool value) => OnPropertyChanged(nameof(IsFileSelectionStep));
 
     public async void OnBecameCurrent()
@@ -215,6 +235,11 @@ public partial class ImportViewModel : ViewModelBase
     public ObservableCollection<Category> AvailableCategories { get; } = new();
 
     /// <summary>
+    /// 批量映射下拉框的分类列表（根据 CategoryTypeFilter 筛选）
+    /// </summary>
+    public ObservableCollection<Category> FilteredBatchCategories { get; } = new();
+
+    /// <summary>
     /// 是否显示分类映射面板
     /// </summary>
     [ObservableProperty]
@@ -253,6 +278,7 @@ public partial class ImportViewModel : ViewModelBase
     partial void OnCategoryTypeFilterChanged(int value)
     {
         UpdateCategoryMappingGroups();
+        UpdateFilteredBatchCategories();
         OnPropertyChanged(nameof(IsCategoryFilterAll));
         OnPropertyChanged(nameof(IsCategoryFilterExpense));
         OnPropertyChanged(nameof(IsCategoryFilterIncome));
@@ -353,6 +379,11 @@ public partial class ImportViewModel : ViewModelBase
     /// 解析结果（临时保存，确认导入时使用）
     /// </summary>
     private ParseResult? _parseResult;
+
+    /// <summary>
+    /// 解析成功后持久化的 ImportRecord Id，导入时更新而非新建
+    /// </summary>
+    private long? _currentImportRecordId;
 
     #region 筛选相关属性
 
@@ -513,6 +544,7 @@ public partial class ImportViewModel : ViewModelBase
         FilteredTransactions.Clear();
         _allTransactions.Clear();
         _parseResult = null;
+        _currentImportRecordId = null;
 
         var fileInfo = new FileInfo(filePath);
         FileSize = FileSizeFormatter.FormatFileSize(fileInfo.Length);
@@ -643,17 +675,105 @@ public partial class ImportViewModel : ViewModelBase
                 _allTransactions.Add(new TransactionItem(t));
             }
 
+            // 解析成功后持久化 ImportRecord（同路径不重复创建）
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var importRecordRepo = scope.ServiceProvider.GetRequiredService<IImportRecordRepository>();
+
+                // 检查是否已有同路径的记录，有则复用
+                var existingRecord = !string.IsNullOrEmpty(SelectedFilePath)
+                    ? await importRecordRepo.GetByFilePathAsync(SelectedFilePath)
+                    : null;
+
+                if (existingRecord != null)
+                {
+                    // 更新已有记录的解析信息
+                    existingRecord.ImportTime = DateTime.Now;
+                    existingRecord.Source = _parseResult.DetectedSource;
+                    existingRecord.TotalRows = _parseResult.TotalRows;
+                    existingRecord.SkippedCount = _parseResult.SkippedCount;
+                    existingRecord.ErrorCount = _parseResult.Errors.Count;
+                    existingRecord.ErrorDetails = _parseResult.Errors.Count > 0
+                        ? string.Join("\n", _parseResult.Errors.Take(10).Select(e => e.ErrorMessage))
+                        : null;
+                    await importRecordRepo.UpdateAsync(existingRecord);
+                    _currentImportRecordId = existingRecord.Id;
+                }
+                else
+                {
+                    var importRecord = new ImportRecord
+                    {
+                        FileName = FileName!,
+                        FilePath = SelectedFilePath,
+                        Source = _parseResult.DetectedSource,
+                        ImportTime = DateTime.Now,
+                        TotalRows = _parseResult.TotalRows,
+                        ImportedCount = 0,
+                        SkippedCount = _parseResult.SkippedCount,
+                        ErrorCount = _parseResult.Errors.Count,
+                        ErrorDetails = _parseResult.Errors.Count > 0
+                            ? string.Join("\n", _parseResult.Errors.Take(10).Select(e => e.ErrorMessage))
+                            : null
+                    };
+                    await importRecordRepo.AddAsync(importRecord);
+                    _currentImportRecordId = importRecord.Id;
+                }
+            }
+            catch
+            {
+                _currentImportRecordId = null;
+            }
+
             // 构建字段映射信息
             BuildMappings();
-
-            // 进入映射步骤
-            IsMappingStep = true;
 
             // 加载分类列表（用于分类映射）
             await LoadCategoriesAsync();
 
             // 加载账户列表
             await LoadAccountsAsync(_parseResult.DetectedSource);
+
+            // 应用默认账户和自动匹配分类到所有交易
+            var defaultAccount = SelectedAccount;
+            foreach (var t in _allTransactions)
+            {
+                t.IsCategoryMapped = false;
+                t.IsAccountMapped = false;
+            }
+            foreach (var mapping in CategoryMappings.Where(m => m.IsMapped))
+            {
+                var matched = _allTransactions.Where(t => t.OriginalCategoryName == mapping.SourceCategory);
+                foreach (var t in matched)
+                {
+                    t.Transaction.CategoryId = mapping.TargetCategoryId;
+                    t.Transaction.CategoryName = mapping.TargetCategoryName;
+                    t.IsCategoryMapped = true;
+                }
+            }
+            if (defaultAccount != null)
+            {
+                foreach (var t in _allTransactions)
+                {
+                    t.Transaction.AccountId = defaultAccount.Id;
+                    t.Transaction.DataSourceName = defaultAccount.Name;
+                    t.IsAccountMapped = true;
+                }
+            }
+
+            // 提取筛选选项并直接进入预览
+            ExtractFilterOptions();
+            SearchKeyword = string.Empty;
+            ApplyFilter();
+
+            HasParsedData = true;
+            ImportedCount = _allTransactions.Count;
+            SkippedCount = _parseResult.SkippedCount;
+            ErrorCount = _parseResult.Errors.Count;
+
+            ImportStatus = $"解析完成：共 {ImportedCount} 条交易记录" +
+                          (SkippedCount > 0 ? $"，跳过 {SkippedCount} 条" : "") +
+                          (ErrorCount > 0 ? $"，解析错误 {ErrorCount} 条" : "");
         }
         catch (Exception ex)
         {
@@ -898,13 +1018,13 @@ public partial class ImportViewModel : ViewModelBase
         {
             if (assigned.Contains(item)) continue;
 
-            var groupName = ExtractPaymentMethodRoot(item.SourcePaymentMethod);
+            var groupName = PaymentMethodHelper.ExtractRoot(item.SourcePaymentMethod);
             var group = new PaymentMethodGroup { GroupName = groupName };
 
             // 找到所有属于同一组的项
             var groupItems = items.Where(i =>
                 !assigned.Contains(i) &&
-                ExtractPaymentMethodRoot(i.SourcePaymentMethod) == groupName).ToList();
+                PaymentMethodHelper.ExtractRoot(i.SourcePaymentMethod) == groupName).ToList();
 
             foreach (var gi in groupItems)
             {
@@ -923,30 +1043,6 @@ public partial class ImportViewModel : ViewModelBase
         {
             PaymentMethodGroups.Add(g);
         }
-    }
-
-    /// <summary>
-    /// 提取支付方式名称的根名（去除后缀变体）
-    /// 规则：取 "&" 或 "(" 之前的部分，或最后一个常见后缀之前的部分
-    /// </summary>
-    private static string ExtractPaymentMethodRoot(string name)
-    {
-        // 规则1: 以 "&" 分隔（如 "余额宝&红包" → "余额宝"）
-        if (name.Contains('&'))
-            return name.Split('&')[0].Trim();
-
-        // 规则2: 以 "（" 或 "(" 分隔（如 "招商银行(信用卡)" → "招商银行"）
-        if (name.Contains('（'))
-            return name.Split('（')[0].Trim();
-        if (name.Contains('('))
-            return name.Split('(')[0].Trim();
-
-        // 规则3: 以 "-" 分隔（如 "花呗-分期" → "花呗"）
-        if (name.Contains('-'))
-            return name.Split('-')[0].Trim();
-
-        // 无特殊分隔符，返回原名
-        return name;
     }
 
     private static string? GetFieldValue(Transaction t, string fieldName)
@@ -995,6 +1091,9 @@ public partial class ImportViewModel : ViewModelBase
                 SuggestedType = group.Key.Type,
                 AvailableCategories = AvailableCategories
             };
+
+            // 根据 SuggestedType 筛选可选分类
+            item.RefreshFilteredCategories();
 
             // 尝试自动匹配分类
             AutoMatchCategory(item);
@@ -1049,6 +1148,25 @@ public partial class ImportViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// 更新批量映射下拉框的分类列表（根据 CategoryTypeFilter 筛选）
+    /// </summary>
+    private void UpdateFilteredBatchCategories()
+    {
+        FilteredBatchCategories.Clear();
+
+        IEnumerable<Category> filtered = AvailableCategories;
+        if (CategoryTypeFilter == 1)
+            filtered = filtered.Where(c => c.Type == TransactionType.Expense || c.Type == TransactionType.Transfer);
+        else if (CategoryTypeFilter == 2)
+            filtered = filtered.Where(c => c.Type == TransactionType.Income);
+
+        foreach (var cat in filtered)
+        {
+            FilteredBatchCategories.Add(cat);
+        }
+    }
+
+    /// <summary>
     /// 自动匹配分类
     /// </summary>
     private void AutoMatchCategory(CategoryMappingItem item)
@@ -1083,9 +1201,10 @@ public partial class ImportViewModel : ViewModelBase
             AvailableCategories.Add(category);
         }
 
-        // 自动匹配分类
+        // 自动匹配分类 & 刷新筛选列表
         foreach (var item in CategoryMappings)
         {
+            item.RefreshFilteredCategories();
             if (!item.IsMapped)
             {
                 AutoMatchCategory(item);
@@ -1094,13 +1213,67 @@ public partial class ImportViewModel : ViewModelBase
 
         // 更新分组
         UpdateCategoryMappingGroups();
+        UpdateFilteredBatchCategories();
     }
 
     /// <summary>
-    /// 确认映射并进入预览
+    /// 打开映射设置弹窗
+    /// </summary>
+    [RelayCommand]
+    private void OpenMappingDialog()
+    {
+        IsMappingDialogOpen = true;
+    }
+
+    /// <summary>
+    /// 关闭映射设置弹窗
+    /// </summary>
+    [RelayCommand]
+    private void CloseMappingDialog()
+    {
+        IsMappingDialogOpen = false;
+    }
+
+    /// <summary>
+    /// 应用映射到交易数据并刷新预览
+    /// </summary>
+    [RelayCommand]
+    private void ApplyMappings()
+    {
+        ApplyMappingsInternal();
+        ExtractFilterOptions();
+        ApplyFilter();
+        IsMappingDialogOpen = false;
+    }
+
+    /// <summary>
+    /// （兼容原 XAML）确认映射并进入预览
     /// </summary>
     [RelayCommand]
     private void ConfirmMapping()
+    {
+        ApplyMappingsInternal();
+        IsMappingStep = false;
+        HasParsedData = true;
+        ImportedCount = _allTransactions.Count;
+        SkippedCount = _parseResult?.SkippedCount ?? 0;
+        ErrorCount = _parseResult?.Errors.Count ?? 0;
+
+        ExtractFilterOptions();
+        SearchKeyword = string.Empty;
+        ApplyFilter();
+
+        var categoryUnmappedCount = _allTransactions.Count(t => !t.IsCategoryMapped && !string.IsNullOrEmpty(t.OriginalCategoryName));
+        var accountUnmappedCount = _allTransactions.Count(t => !t.IsAccountMapped);
+
+        ImportStatus = $"解析完成：共 {ImportedCount} 条交易记录" +
+                      (SkippedCount > 0 ? $"，跳过 {SkippedCount} 条" : "") +
+                      (ErrorCount > 0 ? $"，错误 {ErrorCount} 条" : "") +
+                      (categoryUnmappedCount > 0 ? $"，{categoryUnmappedCount} 条分类未映射" : "") +
+                      (accountUnmappedCount > 0 ? $"，{accountUnmappedCount} 条账户未映射" : "");
+    }
+
+    private void ApplyMappingsInternal()
     {
         var defaultAccount = SelectedAccount;
 
@@ -1152,28 +1325,16 @@ public partial class ImportViewModel : ViewModelBase
             }
         }
 
-        // 提取筛选选项
+        // 刷新筛选并关闭弹窗
         ExtractFilterOptions();
-
-        // 重置筛选条件
-        SearchKeyword = string.Empty;
-
-        // 应用筛选并显示
         ApplyFilter();
-
-        IsMappingStep = false;
-        HasParsedData = true;
-        ImportedCount = _allTransactions.Count;
-        SkippedCount = _parseResult?.SkippedCount ?? 0;
-        ErrorCount = _parseResult?.Errors.Count ?? 0;
+        IsMappingDialogOpen = false;
 
         // 统计映射问题
         var categoryUnmappedCount = _allTransactions.Count(t => !t.IsCategoryMapped && !string.IsNullOrEmpty(t.OriginalCategoryName));
         var accountUnmappedCount = _allTransactions.Count(t => !t.IsAccountMapped);
 
-        ImportStatus = $"解析完成：共 {ImportedCount} 条交易记录" +
-                      (SkippedCount > 0 ? $"，跳过 {SkippedCount} 条" : "") +
-                      (ErrorCount > 0 ? $"，错误 {ErrorCount} 条" : "") +
+        ImportStatus = $"预览：共 {_allTransactions.Count} 条记录" +
                       (categoryUnmappedCount > 0 ? $"，{categoryUnmappedCount} 条分类未映射" : "") +
                       (accountUnmappedCount > 0 ? $"，{accountUnmappedCount} 条账户未映射" : "");
     }
@@ -1820,6 +1981,7 @@ public partial class ImportViewModel : ViewModelBase
                 FileName!,
                 _parseResult.DetectedSource,
                 SelectedFilePath,
+                _currentImportRecordId,
                 progress);
 
             var excludedCount = _allTransactions.Count - selectedTransactions.Count;
@@ -1878,7 +2040,7 @@ public partial class ImportViewModel : ViewModelBase
         HasFile = false;
         ImportCompleted = false;
         HasParsedData = false;
-        IsMappingStep = false;
+        IsMappingDialogOpen = false;
         ImportProgress = 0;
         ImportedCount = 0;
         SkippedCount = 0;
@@ -1887,6 +2049,7 @@ public partial class ImportViewModel : ViewModelBase
         _allTransactions.Clear();
         _filteredData.Clear();
         _parseResult = null;
+        _currentImportRecordId = null;
         SelectedAccount = null;
         TypeFilterOptions.Clear();
         StatusFilterOptions.Clear();
@@ -1957,6 +2120,17 @@ public partial class ImportViewModel : ViewModelBase
     private async Task DeleteHistoryAsync(ImportRecord? record)
     {
         if (record == null) return;
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var importRecordRepo = scope.ServiceProvider.GetRequiredService<IImportRecordRepository>();
+            await importRecordRepo.DeleteAsync(record);
+        }
+        catch
+        {
+            // 数据库删除失败时仍从界面移除
+        }
 
         ImportHistory.Remove(record);
         OnPropertyChanged(nameof(HasImportHistory));

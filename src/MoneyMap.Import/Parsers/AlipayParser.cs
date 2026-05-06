@@ -98,9 +98,9 @@ public class AlipayParser : IRecordParser
                         transactionType = direction switch
                         {
                             "支出" => TransactionType.Expense,
-                            "收入" => TransactionType.Income,
-                            "不计收支" => DetectTransferType(description, counterparty, paymentMethod),
-                            _ => DetectTransferType(description, counterparty, paymentMethod)
+                            "收入" => DetectIncomeOrCurrent(description, counterparty, paymentMethod),
+                            "不计收支" => DetectTransferOrIncome(description, counterparty, paymentMethod),
+                            _ => DetectTransferOrIncome(description, counterparty, paymentMethod)
                         };
 
                         // 智能识别：即使方向是支出/收入，也可能是转账
@@ -216,40 +216,101 @@ public class AlipayParser : IRecordParser
         return false;
     }
 
-    /// <summary>
-    /// "不计收支"方向的交易，判断是否为转账
+/// <summary>
+    /// "不计收支"方向的交易，优先识别理财收益→Income，其余→Transfer
     /// </summary>
-    private static TransactionType DetectTransferType(string description, string? counterparty, string? paymentMethod)
+    private static TransactionType DetectTransferOrIncome(string description, string? counterparty, string? paymentMethod)
     {
-        // 转账/提现/充值/余额宝 等关键词 → Transfer
-        var transferKeywords = new[] { "转账", "提现", "充值", "余额宝", "余利宝", "转入", "转出", "提款" };
         var text = $"{description} {counterparty} {paymentMethod}";
+
+        // 优先检测理财收益 → Income（如："余额宝-2026.05.03-收益发放"）
+        if (IsInvestmentIncome(description, text))
+            return TransactionType.Income;
+
+        // 转账/提现/充值/理财买入 等关键词 → Transfer
+        var transferKeywords = new[] { "转账", "提现", "充值", "转入", "转出", "提款" };
         foreach (var keyword in transferKeywords)
         {
             if (text.Contains(keyword))
                 return TransactionType.Transfer;
         }
-        // 默认不计收支仍归为 Transfer
+
+        // 余额宝/余利宝/蚂蚁财富等理财操作（非收益）→ Transfer
+        var investmentKeywords = new[] { "余额宝", "余利宝", "蚂蚁财富", "基金", "理财产品" };
+        foreach (var keyword in investmentKeywords)
+        {
+            if (text.Contains(keyword))
+                return TransactionType.Transfer;
+        }
+
+        // 默认不计收支归为 Transfer
         return TransactionType.Transfer;
     }
 
     /// <summary>
+    /// "收入"方向的交易，检测是否实际为理财收益（保持 Income）或应转为 Transfer
+    /// </summary>
+    private static TransactionType DetectIncomeOrCurrent(string description, string? counterparty, string? paymentMethod)
+    {
+        var text = $"{description} {counterparty} {paymentMethod}";
+
+        // 理财收益 → Income（如："余额宝-收益发放"、"基金分红"）
+        if (IsInvestmentIncome(description, text))
+            return TransactionType.Income;
+
+        // 余额宝/余利宝等其他操作（转入等）→ Transfer
+        if (text.Contains("余额宝") || text.Contains("余利宝"))
+            return TransactionType.Transfer;
+
+        return TransactionType.Income;
+    }
+
+    /// <summary>
+    /// 判断描述是否为理财收益（收益、利息、分红等）
+    /// </summary>
+    private static bool IsInvestmentIncome(string description, string text)
+    {
+        var incomeKeywords = new[] { "收益发放", "收益到账", "利息", "分红", "派息", "赎回收益" };
+        foreach (var keyword in incomeKeywords)
+        {
+            if (description.Contains(keyword))
+                return true;
+        }
+
+        // "余额宝-.*-收益" 或 "零钱通-.*-收益" 模式
+        if ((description.Contains("余额宝") || description.Contains("余利宝")) && description.Contains("收益"))
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
     /// 即使方向是支出/收入，也检查是否可能是转账场景
-    /// （如：支付宝余额转到银行卡、信用卡还款等）
+    /// （如：支付宝余额转到银行卡、信用卡还款、理财买入等）
     /// </summary>
     private static TransactionType MaybeTransfer(TransactionType currentType, string description, string? counterparty, string? paymentMethod)
     {
         var text = $"{description} {counterparty} {paymentMethod}";
+
         // 明确的转账场景
         if (text.Contains("转账-") || text.Contains("转账到") || text.Contains("提现到") ||
             text.Contains("信用卡还款") || text.Contains("还信用卡") || text.Contains("花呗还款"))
         {
             return TransactionType.Transfer;
         }
-        return currentType;
+
+        // 理财买入/卖出 → Transfer（如："蚂蚁财富-招商中证白酒指数C-买入"）
+        var investBuySellKeywords = new[] { "买入", "卖出", "申购", "赎回" };
+        var investPlatformKeywords = new[] { "蚂蚁财富", "余额宝", "余利宝", "基金", "理财" };
+        var hasInvestPlatform = investPlatformKeywords.Any(k => text.Contains(k));
+        var hasBuySellAction = investBuySellKeywords.Any(k => description.Contains(k));
+        if (hasInvestPlatform && hasBuySellAction)
+            return TransactionType.Transfer;
+
+return currentType;
     }
 
-private (List<string> lines, Encoding encoding) ReadAllLines(Stream stream)
+    private (List<string> lines, Encoding encoding) ReadAllLines(Stream stream)
     {
         // Try UTF-8 first
         stream.Position = 0;

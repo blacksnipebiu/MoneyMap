@@ -43,7 +43,12 @@ public class CategoryMappingItem : ObservableObject
     
     /// <summary>可选分类列表引用（从 ImportViewModel 传入）</summary>
     public ObservableCollection<Category>? AvailableCategories { get; set; }
-    
+
+    /// <summary>
+    /// 按当前 SuggestedType 筛选后的分类列表（ComboBox 绑定用）
+    /// </summary>
+    public ObservableCollection<Category> FilteredCategories { get; } = new();
+
     /// <summary>是否勾选（用于批量操作）</summary>
     private bool _isSelected;
     public bool IsSelected
@@ -87,6 +92,20 @@ public class CategoryMappingItem : ObservableObject
     
     /// <summary>是否已匹配</summary>
     public bool IsMapped => TargetCategoryId.HasValue;
+
+    /// <summary>
+    /// 根据 SuggestedType 从 AvailableCategories 中筛选分类，更新 FilteredCategories
+    /// </summary>
+    public void RefreshFilteredCategories()
+    {
+        FilteredCategories.Clear();
+        if (AvailableCategories == null) return;
+
+        foreach (var cat in AvailableCategories.Where(c => c.Type == SuggestedType))
+        {
+            FilteredCategories.Add(cat);
+        }
+    }
 }
 
 /// <summary>

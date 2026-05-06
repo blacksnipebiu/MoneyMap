@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MoneyMap.Core\MoneyMap.Core.csproj" />
+    <ProjectReference Include="..\MoneyMap.Utils\MoneyMap.Utils.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,85 +1,97 @@
 # MoneyMap - 跨平台桌面记账应用
 
+**Generated:** 2026-05-06 | **Branch:** master | **Stack:** Avalonia 12 + EF Core SQLite + CommunityToolkit.Mvvm
+
 ## 项目结构
 
 ```
 src/
-├── MoneyMap.Core/       # 核心模型、枚举、接口（无外部依赖）
-├── MoneyMap.Data/       # EF Core + SQLite 数据访问层
+├── MoneyMap.Core/       # 领域模型、枚举、仓储接口（无外部依赖）
+├── MoneyMap.Data/       # EF Core + SQLite 数据层
 ├── MoneyMap.Import/     # 账单解析（支付宝CSV、微信Excel）
 ├── MoneyMap.Utils/      # 工具类
-└── MoneyMap.App/        # Avalonia UI 桌面应用
+└── MoneyMap.App/        # Avalonia UI 桌面应用（入口）
+tests/Bookkeeping.Data.Tests/  # xUnit 测试
 ```
+
+**依赖方向**: `Utils` ← `Core` ← `Data` ← `App` | `Import` ← `App`
 
 ## 构建命令
 
 ```bash
-# Release 构建（优先）
 dotnet build src/MoneyMap.App/MoneyMap.App.csproj -c Release
-
-# Debug 构建
-dotnet build src/MoneyMap.App/MoneyMap.App.csproj
-
-# 运行应用
 dotnet run --project src/MoneyMap.App/MoneyMap.App.csproj
+dotnet test   # xUnit + EF Core InMemory
 ```
 
-## 架构要点
+## WHERE TO LOOK
 
-### 依赖注入
-- `App.Services` 静态属性暴露 `IServiceProvider`，ViewModel 通过它获取服务
-- `App.ToastService` 静态属性暴露全局 Toast 服务
-- 注册入口：`App.axaml.cs` 中的 `OnFrameworkInitializationCompleted()`
-
-### 数据库
-- SQLite，路径：`%LocalAppData%/MoneyMap/moneymap.db`
-- 使用 EF Core Code First，无迁移文件，通过 `EnsureCreatedAsync()` 初始化
-- 重置数据库需调用 `SqliteConnection.ClearAllPools()` 释放连接池
-
-### MVVM 模式
-- ViewModel 缓存在 `MainWindowViewModel` 中，导航时复用实例（保留页面状态）
-- ViewLocator 按命名约定自动匹配：`XxxViewModel` → `XxxView`
-- 使用 CommunityToolkit.Mvvm 的 `[ObservableProperty]` 和 `[RelayCommand]`
-
-### 账单导入
-- `SourceDetector` 自动检测来源（支付宝/微信）
-- `IRecordParser` 接口实现解析器，通过 `ParserFactory` 获取
-- 导入流程：解析 → 预览（支持筛选、分页）→ 选择账户 → 确认导入
-- `Transaction` 模型的 `AccountId` 和 `ImportRecordId` 是非空外键，导入时必须设置
-
-### 筛选组件
-- 使用 `FilterOption<T>` 类实现多选勾选筛选
-- 筛选选项变化时通过 `OnChanged` 回调触发 `ApplyFilter()`
-- 分页默认 20 条/页，可选 20/50/100/200
+| 任务 | 位置 | 说明 |
+|------|------|------|
+| **应用启动** | `App.axaml.cs` → `OnFrameworkInitializationCompleted()` | DI、DB 初始化、MainWindow 创建 |
+| **页面导航** | `MainWindowViewModel.cs` | ViewModel 缓存 + `NavigateTo()` 路由 |
+| **视图定位** | `ViewLocator.cs` | 命名约定 `XxxViewModel` → `XxxView`（字符串替换） |
+| **数据库** | `BookkeepingDbContext.cs` | 5 个 DbSet，Code First 无迁移，`EnsureCreatedAsync()` |
+| **账单解析** | `MoneyMap.Import/Parsers/` | 支付宝 CSV (CsvHelper) / 微信 Excel (MiniExcel) |
+| **智能分类** | `AlipayParser.cs` 的 `DetectTransferOrIncome()` | 3 层分类：方向 → 理财收益 → 转账覆盖 |
+| **导入流程** | `ImportViewModel.cs` (2000+ 行) | 检测→解析→预览→映射弹窗→确认→入库 |
+| **分类自动匹配** | `CategoryService.cs` | 3 层：精确名→SourceCategoryMapping→AutoMatchPattern 正则 |
+| **DI 注册** | `ServiceCollectionExtensions.cs` (Data/Import) | 扩展方法隔离层注册 |
+| **Toast 通知** | `App.ToastService` | 全局静态访问，自动消失动画 |
 
 ## 关键文件
 
 | 文件 | 作用 |
 |------|------|
-| `App.axaml.cs` | DI 配置、数据库初始化、全局服务 |
-| `MainWindowViewModel.cs` | ViewModel 缓存、页面导航 |
-| `ServiceCollectionExtensions.cs` (Data) | DbContext 和 Repository 注册 |
-| `ServiceCollectionExtensions.cs` (Import) | 解析器注册 |
-| `Transaction.cs` | 核心交易模型，`AccountId` 和 `ImportRecordId` 是必填外键 |
-| `FilterOption<T>` (ImportViewModel.cs) | 筛选选项包装类，支持勾选状态和变化回调 |
+| `App.axaml.cs` | DI 配置、DB 初始化、`App.Services`/`App.ToastService` 静态暴露 |
+| `MainWindowViewModel.cs` | 8 个页面 ViewModel 缓存、导航路由 |
+| `ImportViewModel.cs` | 最大文件（2000+行），导入全流程 + 筛选 + 映射 |
+| `ImportOrchestrationService.cs` | 导入管道：验证→去重→保存→ImportRecord |
+| `Transaction.cs` | `AccountId` 和 `ImportRecordId` 是非空外键 |
+| `Category.cs` | `SourceCategoryMapping`(逗号分隔) + `AutoMatchPattern`(正则) 自动分类 |
+| `MappingModels.cs` | 映射 UI 模型：分类/支付方式/字段映射 |
+| `FilterOption<T>` (ImportViewModel.cs) | 多选筛选组件 |
 
-## Converters
+## CONVENTIONS
 
-在 `App.axaml` 中注册，XAML 中通过 `{StaticResource XxxConverter}` 引用：
+- **MVVM**: `CommunityToolkit.Mvvm` — `[ObservableProperty]` 生成属性（`_camelCase` → `PascalCase`），`[RelayCommand]` 生成命令
+- **partial class**: 所有 ViewModel 和 View 必须 `partial`（源码生成器要求）
+- **异步命令**: 命令方法名**不带** `Async` 后缀（`SelectFileAsync()` → `SelectFileCommand`）
+- **DB 访问**: 每次操作 `using var scope = _scopeFactory.CreateScope()` 创建作用域
+- **服务定位器**: `App.Services.GetRequiredService<T>()` 和 `App.ToastService.ShowError()` 全局静态访问
+- **Avalonia 样式**: `Styles/` 分层（Colors → Typography → Controls），`{StaticResource Conv}` 引用转换器
+- **无 .editorconfig** — 依赖 Rider/VS 默认格式
+
+## ANTI-PATTERNS (THIS PROJECT)
+
+- **async void** 仅限事件处理器和生命周期回调（`OnBecameCurrent()`）
+- **ImportRecord.HttpPath** 空路径 — 导入时必须设置 `FilePath`
+- `Transaction.AccountId` 和 `ImportRecordId` 是**非空** FK — 入库前必须赋值
+- **不使用迁移** — Code First `EnsureCreatedAsync()` 仅适用开发；生产需手动处理 schema 变更
+- DB 重置需 `SqliteConnection.ClearAllPools()` 释放连接池
+
+## CONVERTERS
+
+在 `App.axaml` 中注册为 `{StaticResource XxxConverter}`：
 
 | Converter | 用途 |
 |-----------|------|
-| `TransactionTypeBrushConverter` | 交易类型 → 画刷颜色 |
-| `TransactionTypeNameConverter` | 交易类型 → 中文名称 |
-| `TransactionTypeColorConverter` | 交易类型 → 颜色字符串 |
-| `TransactionTypeAmountColorConverter` | 交易类型 → 金额颜色画刷 |
-| `SelectionOpacityConverter` | 选中状态 → 透明度（1.0/0.5） |
-| `DataSourceIconConverter` | 数据源 → 图标 |
-| `DataSourceNameConverter` | 数据源 → 中文名称 |
+| `TransactionTypeBrushConverter` | 类型 → 画刷 |
+| `TransactionTypeNameConverter` | 类型 → 中文（支出/收入/转账） |
+| `TransactionTypeColorConverter` | 类型 → 颜色字符串 |
+| `TransactionTypeAmountColorConverter` | 类型 → 金额颜色 |
+| `TransactionStatusNameConverter` | 状态 → 中文（已完成/已退款/待处理） |
+| `DataSourceIconConverter` | 数据源 → 图标字符 |
+| `DataSourceNameConverter` | 数据源 → 中文（支付宝/微信支付） |
 
-## 注意事项
+## NOTES
 
-- Avalonia 12 的 DataGrid 需要单独引用 `Avalonia.Controls.DataGrid` 包（版本 12.0.0）
-- 拖拽文件使用 `DataFormat.File` 和 `e.DataTransfer.TryGetFiles()`
-- 文件对话框使用 `TopLevel.StorageProvider.OpenFilePickerAsync()`
-- `Transaction` 模型的 `AccountId` 和 `ImportRecordId` 是非空外键，导入时必须设置
+- **Avalonia 12** DataGrid 需单独引用包 `Avalonia.Controls.DataGrid v12.0.0`
+- 拖拽文件: `DataFormat.File` + `e.DataTransfer.TryGetFiles()`
+- 文件对话框: `TopLevel.StorageProvider.OpenFilePickerAsync()`
+- DB 路径: `%LocalAppData%/MoneyMap/moneymap.db`
+- 种子数据: 20 个默认分类（9 支出/6 收入/3 转账/2 其他）+ 17 个转换器
+- 微信账单使用 `MiniExcel` 按列索引解析（非列名），注意列顺序
+- 支付宝 CSV 编码检测: UTF-8 → GBK 回退
+- 理财智能分类: 余额宝/零钱通 + 收益 → Income，蚂蚁财富 + 买入 → Transfer
+- 存在一个测试项目但引用已过时（`Bookkeeping.Data.Tests` 引用已更名的项目）

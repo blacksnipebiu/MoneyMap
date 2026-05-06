@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using MoneyMap.Core.Enums;
 using MoneyMap.Core.Models;
+using MoneyMap.Utils;
 
 namespace MoneyMap.Data.Services;
 
@@ -86,24 +87,7 @@ public class ImportMappingService : IImportMappingService
     
     public string ExtractPaymentMethodRoot(string name)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            return name;
-        
-        // 规则1: 以 "&" 分隔（如 "余额宝&红包" → "余额宝"）
-        if (name.Contains('&'))
-            return name.Split('&')[0].Trim();
-        
-        // 规则2: 以 "（" 或 "(" 分隔（如 "招商银行(信用卡)" → "招商银行"）
-        if (name.Contains('（'))
-            return name.Split('（')[0].Trim();
-        if (name.Contains('('))
-            return name.Split('(')[0].Trim();
-        
-        // 规则3: 以 "-" 分隔（如 "花呗-分期" → "花呗"）
-        if (name.Contains('-'))
-            return name.Split('-')[0].Trim();
-        
-        return name;
+        return PaymentMethodHelper.ExtractRoot(name);
     }
     
     private static string GetSourceKeyword(DataSource source) => source switch

@@ -110,10 +110,160 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <!-- Mapping Step -->
-            <Border Classes="Card" IsVisible="{Binding IsMappingStep}" VerticalAlignment="Stretch">
-                <Grid RowDefinitions="*,Auto">
-                    <TabControl Grid.Row="0" SelectedIndex="{Binding SelectedMappingTabIndex}">
+            <!-- Preview Step -->
+            <Border Classes="Card" IsVisible="{Binding HasParsedData}" VerticalAlignment="Stretch">
+                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
+                        <TextBlock Text="预览导入数据" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Content="⚙ 映射设置" Command="{Binding OpenMappingDialogCommand}" Padding="8,4" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding ImportStatus}" Classes="Caption" Opacity="0.7" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Border Grid.Row="2" Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                            CornerRadius="6" Padding="12,8" Margin="0,12,0,0">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                <Button Classes="Secondary" Content="全选" FontSize="12" Padding="8,4" Command="{Binding SelectAllFilteredCommand}"/>
+                                <Button Classes="Secondary" Content="取消全选" FontSize="12" Padding="8,4" Command="{Binding DeselectAllFilteredCommand}"/>
+                                <Button Classes="Secondary" Content="反选" FontSize="12" Padding="8,4" Command="{Binding InvertSelectionFilteredCommand}"/>
+                            </StackPanel>
+                            <TextBox Grid.Column="1" Text="{Binding SearchKeyword}" PlaceholderText="搜索..." Margin="12,0,0,0" Width="160"/>
+                            <TextBlock Grid.Column="2" Text="{Binding SelectionSummary}" VerticalAlignment="Center" Margin="12,0,0,0" FontSize="12" Opacity="0.7"/>
+                        </Grid>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="3" Margin="0,12,0,0">
+                        <ItemsControl ItemsSource="{Binding FilteredTransactions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:TransactionItem">
+                                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
+                                        <Grid RowDefinitions="Auto,Auto">
+                                            <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                <Border Grid.Column="1" Width="28" Height="28" CornerRadius="14"
+                                                        Background="{Binding Transaction.Type, Converter={StaticResource TransactionTypeBrushConverter}}" Margin="0,0,10,0">
+                                                    <TextBlock Text="{Binding Transaction.Type, Converter={StaticResource TransactionTypeIconConverter}}"
+                                                               FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
+                                                    <TextBlock Text="{Binding Transaction.Description}" FontWeight="Medium" FontSize="13"
+                                                               TextTrimming="CharacterEllipsis" MaxLines="1"/>
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <TextBlock Text="{Binding Transaction.TransactionTime, StringFormat='yyyy-MM-dd HH:mm'}" FontSize="11" Opacity="0.6"/>
+                                                        <TextBlock Text="{Binding Transaction.Counterparty}" FontSize="11" Opacity="0.6"
+                                                                   IsVisible="{Binding Transaction.Counterparty, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="3" Text="{Binding Transaction.Amount, StringFormat='{}{0:N2}'}"
+                                                           FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Margin="12,0"
+                                                           Foreground="{Binding Transaction.Type, Converter={StaticResource TransactionTypeAmountColorConverter}}"/>
+                                                <TextBlock Grid.Column="4" Text="{Binding Transaction.Status, Converter={StaticResource TransactionStatusNameConverter}}"
+                                                           FontSize="11" Opacity="0.5" VerticalAlignment="Center"/>
+                                            </Grid>
+                                            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="38,6,0,0">
+                                                <Border CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Background="#D1FAE5">
+                                                    <StackPanel Orientation="Horizontal" Spacing="3">
+                                                        <TextBlock Text="{Binding Transaction.CategoryName}" FontSize="11"/>
+                                                        <TextBlock Text="✓" FontSize="10" Foreground="#10B981" IsVisible="{Binding IsCategoryMapped}"/>
+                                                        <TextBlock Text="⚠" FontSize="10" Foreground="#F59E0B" IsVisible="{Binding IsCategoryMapped, Converter={x:Static BoolConverters.Not}}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Border CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Background="#DBEAFE">
+                                                    <StackPanel Orientation="Horizontal" Spacing="3">
+                                                        <TextBlock Text="{Binding Transaction.DataSourceName}" FontSize="11"/>
+                                                        <TextBlock Text="✓" FontSize="10" Foreground="#10B981" IsVisible="{Binding IsAccountMapped}"/>
+                                                        <TextBlock Text="⚠" FontSize="10" Foreground="#F59E0B" IsVisible="{Binding IsAccountMapped, Converter={x:Static BoolConverters.Not}}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Border CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Background="#F3F4F6"
+                                                        IsVisible="{Binding Transaction.PaymentMethod, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                    <TextBlock Text="{Binding Transaction.PaymentMethod}" FontSize="11" Opacity="0.7"/>
+                                                </Border>
+                                                <Border CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Background="#FEF3C7"
+                                                        IsVisible="{Binding IsCategoryMapped, Converter={x:Static BoolConverters.Not}}">
+                                                    <TextBlock FontSize="10" Opacity="0.7">
+                                                        <Run Text="原分类："/>
+                                                        <Run Text="{Binding OriginalCategoryName}"/>
+                                                    </TextBlock>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <Border Grid.Row="4" Background="{DynamicResource CardBackgroundBrush}"
+                            Padding="0,16,0,0" Margin="0,12,0,0"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                <Button Classes="Secondary" Content="首页" FontSize="12" Padding="8,4"
+                                        Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPreviousPage}"/>
+                                <Button Classes="Secondary" Content="上一页" FontSize="12" Padding="8,4"
+                                        Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}"/>
+                                <TextBlock Text="{Binding PaginationInfo}" VerticalAlignment="Center" Margin="4,0" FontSize="12"/>
+                                <Button Classes="Secondary" Content="下一页" FontSize="12" Padding="8,4"
+                                        Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}"/>
+                                <Button Classes="Secondary" Content="末页" FontSize="12" Padding="8,4"
+                                        Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <TextBlock Text="每页" FontSize="12" VerticalAlignment="Center"/>
+                                <ComboBox ItemsSource="{Binding PageSizeOptions}" SelectedItem="{Binding PageSize}" MinWidth="70"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="12" Margin="16,0,0,0">
+                                <Button Classes="Secondary" Content="取消" Command="{Binding ClearFileCommand}"/>
+                                <Button Classes="Primary" Content="确认导入" Command="{Binding ConfirmImportCommand}"
+                                        IsEnabled="{Binding IsImporting, Converter={x:Static BoolConverters.Not}}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Import Completed Section -->
+            <Border Classes="Card" IsVisible="{Binding ImportCompleted}" VerticalAlignment="Stretch">
+                <StackPanel Spacing="20" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="500">
+                    <TextBlock Text="导入完成" FontWeight="SemiBold" FontSize="20" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding ImportStatus}" Classes="Subtitle" HorizontalAlignment="Center"
+                               TextWrapping="Wrap" TextAlignment="Center" Opacity="0.7"/>
+                    <StackPanel Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center" Margin="0,8,0,0">
+                        <StackPanel Spacing="4" HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding ImportedCount}" FontWeight="Bold" FontSize="28"
+                                       HorizontalAlignment="Center" Foreground="#10B981"/>
+                            <TextBlock Text="成功导入" FontSize="12" HorizontalAlignment="Center" Opacity="0.6"/>
+                        </StackPanel>
+                        <StackPanel Spacing="4" HorizontalAlignment="Center" IsVisible="{Binding SkippedCount, Converter={StaticResource IsGreaterThanZero}}">
+                            <TextBlock Text="{Binding SkippedCount}" FontWeight="Bold" FontSize="28"
+                                       HorizontalAlignment="Center" Foreground="#F59E0B"/>
+                            <TextBlock Text="跳过" FontSize="12" HorizontalAlignment="Center" Opacity="0.6"/>
+                        </StackPanel>
+                        <StackPanel Spacing="4" HorizontalAlignment="Center" IsVisible="{Binding ErrorCount, Converter={StaticResource IsGreaterThanZero}}">
+                            <TextBlock Text="{Binding ErrorCount}" FontWeight="Bold" FontSize="28"
+                                       HorizontalAlignment="Center" Foreground="#EF4444"/>
+                            <TextBlock Text="错误" FontSize="12" HorizontalAlignment="Center" Opacity="0.6"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" Margin="0,16,0,0">
+                        <Button Classes="Primary" Content="继续导入" Command="{Binding ClearFileCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            <!-- Mapping Dialog Overlay (last child = renders on top) -->
+            <Border IsVisible="{Binding IsMappingDialogOpen}" Background="#80000000">
+                <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource CardBackgroundBrush}"
+                        CornerRadius="12" Padding="0" Width="900" MaxHeight="700">
+                    <Grid RowDefinitions="Auto,*,Auto">
+                        <Border Grid.Row="0" Padding="20,16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="映射设置" FontWeight="SemiBold" FontSize="18" VerticalAlignment="Center"/>
+                                <Button Grid.Column="1" Content="✕" Padding="6,4" Command="{Binding CloseMappingDialogCommand}"/>
+                            </Grid>
+                        </Border>
+                        <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedMappingTabIndex}">
                         <TabItem Header="分类映射">
                             <ScrollViewer>
                                 <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8" Padding="16"
@@ -358,154 +508,14 @@
                         </TabItem>
                     </TabControl>
 
-                    <Border Grid.Row="1" Background="{DynamicResource CardBackgroundBrush}" 
-                            Padding="0,16,0,0" Margin="0,12,0,0"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
-                        <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right">
-                            <Button Classes="Secondary" Content="取消" Command="{Binding ClearFileCommand}"/>
-                            <Button Classes="Primary" Content="确认映射，继续预览" Command="{Binding ConfirmMappingCommand}"/>
-                        </StackPanel>
-                    </Border>
-                </Grid>
-            </Border>
-
-            <!-- Preview Step -->
-            <Border Classes="Card" IsVisible="{Binding HasParsedData}" VerticalAlignment="Stretch">
-                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
-                    <TextBlock Grid.Row="0" Text="预览导入数据" FontWeight="SemiBold" FontSize="16"/>
-                    <TextBlock Grid.Row="1" Text="{Binding ImportStatus}" Classes="Caption" Opacity="0.7" TextWrapping="Wrap" Margin="0,4,0,0"/>
-
-                    <Border Grid.Row="2" Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
-                            CornerRadius="6" Padding="12,8" Margin="0,12,0,0">
-                        <Grid ColumnDefinitions="Auto,*,Auto">
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                                <Button Classes="Secondary" Content="全选" FontSize="12" Padding="8,4" Command="{Binding SelectAllFilteredCommand}"/>
-                                <Button Classes="Secondary" Content="取消全选" FontSize="12" Padding="8,4" Command="{Binding DeselectAllFilteredCommand}"/>
-                                <Button Classes="Secondary" Content="反选" FontSize="12" Padding="8,4" Command="{Binding InvertSelectionFilteredCommand}"/>
+                    <Border Grid.Row="2" Padding="20,16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+                            <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right">
+                                <Button Classes="Secondary" Content="取消" Command="{Binding CloseMappingDialogCommand}"/>
+                                <Button Classes="Primary" Content="应用映射" Command="{Binding ApplyMappingsCommand}"/>
                             </StackPanel>
-                            <TextBox Grid.Column="1" Text="{Binding SearchKeyword}" PlaceholderText="搜索..." Margin="12,0,0,0" Width="160"/>
-                            <TextBlock Grid.Column="2" Text="{Binding SelectionSummary}" VerticalAlignment="Center" Margin="12,0,0,0" FontSize="12" Opacity="0.7"/>
-                        </Grid>
-                    </Border>
-
-                    <ScrollViewer Grid.Row="3" Margin="0,12,0,0">
-                        <ItemsControl ItemsSource="{Binding FilteredTransactions}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:TransactionItem">
-                                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
-                                        <Grid RowDefinitions="Auto,Auto">
-                                            <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
-                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                                                <Border Grid.Column="1" Width="28" Height="28" CornerRadius="14"
-                                                        Background="{Binding Transaction.Type, Converter={StaticResource TransactionTypeBrushConverter}}" Margin="0,0,10,0">
-                                                    <TextBlock Text="{Binding Transaction.Type, Converter={StaticResource TransactionTypeIconConverter}}"
-                                                               FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
-                                                </Border>
-                                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
-                                                    <TextBlock Text="{Binding Transaction.Description}" FontWeight="Medium" FontSize="13"
-                                                               TextTrimming="CharacterEllipsis" MaxLines="1"/>
-                                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <TextBlock Text="{Binding Transaction.TransactionTime, StringFormat='yyyy-MM-dd HH:mm'}" FontSize="11" Opacity="0.6"/>
-                                                        <TextBlock Text="{Binding Transaction.Counterparty}" FontSize="11" Opacity="0.6"
-                                                                   IsVisible="{Binding Transaction.Counterparty, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                                                    </StackPanel>
-                                                </StackPanel>
-                                                <TextBlock Grid.Column="3" Text="{Binding Transaction.Amount, StringFormat='{}{0:N2}'}"
-                                                           FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Margin="12,0"
-                                                           Foreground="{Binding Transaction.Type, Converter={StaticResource TransactionTypeAmountColorConverter}}"/>
-                                                <TextBlock Grid.Column="4" Text="{Binding Transaction.Status, Converter={StaticResource TransactionStatusNameConverter}}"
-                                                           FontSize="11" Opacity="0.5" VerticalAlignment="Center"/>
-                                            </Grid>
-                                            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="38,6,0,0">
-                                                <Border CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Background="#D1FAE5">
-                                                    <StackPanel Orientation="Horizontal" Spacing="3">
-                                                        <TextBlock Text="{Binding Transaction.CategoryName}" FontSize="11"/>
-                                                        <TextBlock Text="✓" FontSize="10" Foreground="#10B981" IsVisible="{Binding IsCategoryMapped}"/>
-                                                        <TextBlock Text="⚠" FontSize="10" Foreground="#F59E0B" IsVisible="{Binding IsCategoryMapped, Converter={x:Static BoolConverters.Not}}"/>
-                                                    </StackPanel>
-                                                </Border>
-                                                <Border CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Background="#DBEAFE">
-                                                    <StackPanel Orientation="Horizontal" Spacing="3">
-                                                        <TextBlock Text="{Binding Transaction.DataSourceName}" FontSize="11"/>
-                                                        <TextBlock Text="✓" FontSize="10" Foreground="#10B981" IsVisible="{Binding IsAccountMapped}"/>
-                                                        <TextBlock Text="⚠" FontSize="10" Foreground="#F59E0B" IsVisible="{Binding IsAccountMapped, Converter={x:Static BoolConverters.Not}}"/>
-                                                    </StackPanel>
-                                                </Border>
-                                                <Border CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Background="#F3F4F6"
-                                                        IsVisible="{Binding Transaction.PaymentMethod, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                                    <TextBlock Text="{Binding Transaction.PaymentMethod}" FontSize="11" Opacity="0.7"/>
-                                                </Border>
-                                                <Border CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Background="#FEF3C7"
-                                                        IsVisible="{Binding IsCategoryMapped, Converter={x:Static BoolConverters.Not}}">
-                                                    <TextBlock FontSize="10" Opacity="0.7">
-                                                        <Run Text="原分类："/>
-                                                        <Run Text="{Binding OriginalCategoryName}"/>
-                                                    </TextBlock>
-                                                </Border>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-
-                    <Border Grid.Row="4" Background="{DynamicResource CardBackgroundBrush}"
-                            Padding="0,16,0,0" Margin="0,12,0,0"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
-                        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                                <Button Classes="Secondary" Content="首页" FontSize="12" Padding="8,4"
-                                        Command="{Binding FirstPageCommand}" IsEnabled="{Binding HasPreviousPage}"/>
-                                <Button Classes="Secondary" Content="上一页" FontSize="12" Padding="8,4"
-                                        Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}"/>
-                                <TextBlock Text="{Binding PaginationInfo}" VerticalAlignment="Center" Margin="4,0" FontSize="12"/>
-                                <Button Classes="Secondary" Content="下一页" FontSize="12" Padding="8,4"
-                                        Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}"/>
-                                <Button Classes="Secondary" Content="末页" FontSize="12" Padding="8,4"
-                                        Command="{Binding LastPageCommand}" IsEnabled="{Binding HasNextPage}"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                <TextBlock Text="每页" FontSize="12" VerticalAlignment="Center"/>
-                                <ComboBox ItemsSource="{Binding PageSizeOptions}" SelectedItem="{Binding PageSize}" MinWidth="70"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="12" Margin="16,0,0,0">
-                                <Button Classes="Secondary" Content="取消" Command="{Binding ClearFileCommand}"/>
-                                <Button Classes="Primary" Content="确认导入" Command="{Binding ConfirmImportCommand}"
-                                        IsEnabled="{Binding IsImporting, Converter={x:Static BoolConverters.Not}}"/>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </Grid>
-            </Border>
-
-            <!-- Import Completed Section -->
-            <Border Classes="Card" IsVisible="{Binding ImportCompleted}" VerticalAlignment="Stretch">
-                <StackPanel Spacing="20" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="500">
-                    <TextBlock Text="导入完成" FontWeight="SemiBold" FontSize="20" HorizontalAlignment="Center"/>
-                    <TextBlock Text="{Binding ImportStatus}" Classes="Subtitle" HorizontalAlignment="Center"
-                               TextWrapping="Wrap" TextAlignment="Center" Opacity="0.7"/>
-                    <StackPanel Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center" Margin="0,8,0,0">
-                        <StackPanel Spacing="4" HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding ImportedCount}" FontWeight="Bold" FontSize="28"
-                                       HorizontalAlignment="Center" Foreground="#10B981"/>
-                            <TextBlock Text="成功导入" FontSize="12" HorizontalAlignment="Center" Opacity="0.6"/>
-                        </StackPanel>
-                        <StackPanel Spacing="4" HorizontalAlignment="Center" IsVisible="{Binding SkippedCount, Converter={StaticResource IsGreaterThanZero}}">
-                            <TextBlock Text="{Binding SkippedCount}" FontWeight="Bold" FontSize="28"
-                                       HorizontalAlignment="Center" Foreground="#F59E0B"/>
-                            <TextBlock Text="跳过" FontSize="12" HorizontalAlignment="Center" Opacity="0.6"/>
-                        </StackPanel>
-                        <StackPanel Spacing="4" HorizontalAlignment="Center" IsVisible="{Binding ErrorCount, Converter={StaticResource IsGreaterThanZero}}">
-                            <TextBlock Text="{Binding ErrorCount}" FontWeight="Bold" FontSize="28"
-                                       HorizontalAlignment="Center" Foreground="#EF4444"/>
-                            <TextBlock Text="错误" FontSize="12" HorizontalAlignment="Center" Opacity="0.6"/>
-                        </StackPanel>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" Margin="0,16,0,0">
-                        <Button Classes="Primary" Content="继续导入" Command="{Binding ClearFileCommand}"/>
-                    </StackPanel>
-                </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
             </Border>
         </Grid>
 

@@ -20,6 +20,12 @@ public class ImportRecordRepository : IImportRecordRepository
             .FirstOrDefaultAsync(i => i.Id == id);
     }
 
+    public async Task<ImportRecord?> GetByFilePathAsync(string filePath)
+    {
+        return await _context.ImportRecords
+            .FirstOrDefaultAsync(i => i.FilePath == filePath);
+    }
+
     public async Task<IEnumerable<ImportRecord>> GetRecentAsync(int limit = 20)
     {
         return await _context.ImportRecords
@@ -37,6 +43,12 @@ public class ImportRecordRepository : IImportRecordRepository
     public async Task UpdateAsync(ImportRecord record)
     {
         _context.ImportRecords.Update(record);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(ImportRecord record)
+    {
+        _context.ImportRecords.Remove(record);
         await _context.SaveChangesAsync();
     }
 }

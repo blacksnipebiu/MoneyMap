@@ -20,6 +20,7 @@ public interface IImportOrchestrationService
         string fileName,
         DataSource source,
         string? filePath = null,
+        long? importRecordId = null,
         IProgress<ImportProgressInfo>? progress = null);
 }
 
@@ -66,6 +67,7 @@ public class ImportOrchestrationService : IImportOrchestrationService
         string fileName,
         DataSource source,
         string? filePath = null,
+        long? importRecordId = null,
         IProgress<ImportProgressInfo>? progress = null)
     {
         var result = new ImportExecutionResult();
@@ -128,23 +130,36 @@ public class ImportOrchestrationService : IImportOrchestrationService
                 return result;
             }
 
-            // Step 3: 准备导入记录
+            // Step 3: 加载已有的 ImportRecord（解析阶段已创建），或创建新的
             progress?.Report(new ImportProgressInfo { Progress = 50, Status = "正在准备导入...", CurrentStep = 3, TotalSteps = totalSteps });
 
-            var importRecord = new ImportRecord
+            ImportRecord? importRecord = null;
+            if (importRecordId.HasValue && importRecordId.Value > 0)
             {
-                FileName = fileName,
-                FilePath = filePath,
-                Source = source,
-                ImportTime = DateTime.Now,
-                TotalRows = transactionList.Count,
-                ImportedCount = newTransactions.Count,
-                SkippedCount = result.ValidationErrorCount + result.DuplicateCount,
-                ErrorCount = result.ValidationErrorCount
-            };
+                importRecord = await _importRecordRepo.GetByIdAsync(importRecordId.Value);
+            }
+
+            if (importRecord == null)
+            {
+                importRecord = new ImportRecord
+                {
+                    FileName = fileName,
+                    FilePath = filePath,
+                    Source = source,
+                    ImportTime = DateTime.Now,
+                    TotalRows = transactionList.Count,
+                };
+                await _importRecordRepo.AddAsync(importRecord);
+            }
+
+            // 更新导入阶段的计数
+            importRecord.ImportedCount = newTransactions.Count;
+            importRecord.SkippedCount = result.ValidationErrorCount + result.DuplicateCount;
+            importRecord.ErrorCount = result.ValidationErrorCount;
 
             foreach (var t in newTransactions)
             {
+                t.ImportRecordId = importRecord.Id;
                 t.ImportRecord = importRecord;
                 t.AccountId = account.Id;
                 t.DataSourceName = account.Name;
@@ -154,6 +169,9 @@ public class ImportOrchestrationService : IImportOrchestrationService
             progress?.Report(new ImportProgressInfo { Progress = 70, Status = "正在保存到数据库...", CurrentStep = 4, TotalSteps = totalSteps });
 
             await _transactionRepo.AddRangeAsync(newTransactions);
+
+            // 导入完成后更新 ImportRecord
+            await _importRecordRepo.UpdateAsync(importRecord);
 
             result.Success = true;
             result.ImportedCount = newTransactions.Count;

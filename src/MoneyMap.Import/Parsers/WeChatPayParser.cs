@@ -105,9 +105,9 @@ public class WeChatPayParser : IRecordParser
                         transactionType = direction switch
                         {
                             "支出" => TransactionType.Expense,
-                            "收入" => TransactionType.Income,
-                            "/" => DetectWeChatTransferType(GetValue(1), GetValue(2), GetValue(3), GetValue(6)),
-                            _ => DetectWeChatTransferType(GetValue(1), GetValue(2), GetValue(3), GetValue(6))
+                            "收入" => DetectWeChatIncomeOrCurrent(GetValue(1), GetValue(2), GetValue(3), GetValue(6)),
+                            "/" => DetectWeChatTransferOrIncome(GetValue(1), GetValue(2), GetValue(3), GetValue(6)),
+                            _ => DetectWeChatTransferOrIncome(GetValue(1), GetValue(2), GetValue(3), GetValue(6))
                         };
 
                         // 智能识别：即使方向是支出/收入，也可能是转账
@@ -182,30 +182,91 @@ public class WeChatPayParser : IRecordParser
     /// <summary>
     /// 微信 "/" 方向的交易，判断是否为转账
     /// </summary>
-    private static TransactionType DetectWeChatTransferType(string? transactionType, string? counterparty, string? product, string? paymentMethod)
+    /// <summary>
+    /// "/"（不计收支）方向的交易，优先识别理财收益→Income，其余→Transfer
+    /// </summary>
+    private static TransactionType DetectWeChatTransferOrIncome(string? transactionType, string? counterparty, string? product, string? paymentMethod)
     {
         var text = $"{transactionType} {counterparty} {product} {paymentMethod}";
-        var transferKeywords = new[] { "转账", "提现", "充值", "零钱通", "转入", "转出", "红包", "群收款" };
+
+        // 优先检测理财收益 → Income（如："零钱通-收益发放"）
+        if (IsWeChatInvestmentIncome(product ?? "", text))
+            return TransactionType.Income;
+
+        var transferKeywords = new[] { "转账", "提现", "充值", "转入", "转出", "红包", "群收款" };
         foreach (var keyword in transferKeywords)
         {
             if (text.Contains(keyword))
                 return TransactionType.Transfer;
         }
+
+        // 零钱通等理财操作（非收益）→ Transfer
+        if (text.Contains("零钱通"))
+            return TransactionType.Transfer;
+
         return TransactionType.Transfer;
     }
 
     /// <summary>
+    /// "收入"方向的交易，检测是否为理财收益（保持 Income）或应转为 Transfer
+    /// </summary>
+    private static TransactionType DetectWeChatIncomeOrCurrent(string? transactionType, string? counterparty, string? product, string? paymentMethod)
+    {
+        var text = $"{transactionType} {counterparty} {product} {paymentMethod}";
+
+        // 理财收益 → Income
+        if (IsWeChatInvestmentIncome(product ?? "", text))
+            return TransactionType.Income;
+
+        // 零钱通其他操作 → Transfer
+        if (text.Contains("零钱通"))
+            return TransactionType.Transfer;
+
+        return TransactionType.Income;
+    }
+
+    /// <summary>
+    /// 判断微信支付交易是否为理财收益
+    /// </summary>
+    private static bool IsWeChatInvestmentIncome(string product, string text)
+    {
+        var incomeKeywords = new[] { "收益发放", "收益到账", "利息", "分红", "派息" };
+        foreach (var keyword in incomeKeywords)
+        {
+            if (product.Contains(keyword) || text.Contains(keyword))
+                return true;
+        }
+
+        // "零钱通-.*-收益" 模式
+        if (product.Contains("零钱通") && product.Contains("收益"))
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
     /// 即使方向是支出/收入，也检查是否可能是转账场景
-    /// （如：微信零钱转到银行卡、信用卡还款等）
+    /// （如：微信零钱转到银行卡、信用卡还款、理财买入等）
     /// </summary>
     private static TransactionType MaybeWeChatTransfer(TransactionType currentType, string? transactionType, string? product, string? counterparty)
     {
         var text = $"{transactionType} {product} {counterparty}";
+
+        // 明确的转账场景
         if (text.Contains("转账-") || text.Contains("转账到") || text.Contains("提现到") ||
             text.Contains("信用卡还款") || text.Contains("还信用卡") || text.Contains("微粒贷还款"))
         {
             return TransactionType.Transfer;
         }
+
+        // 理财买入/卖出 → Transfer（如："零钱通-买入"）
+        var investBuySellKeywords = new[] { "买入", "卖出", "申购", "赎回" };
+        var investPlatformKeywords = new[] { "零钱通", "理财通", "基金" };
+        var hasInvestPlatform = investPlatformKeywords.Any(k => text.Contains(k));
+        var hasBuySellAction = investBuySellKeywords.Any(k => (product ?? "").Contains(k));
+        if (hasInvestPlatform && hasBuySellAction)
+            return TransactionType.Transfer;
+
         return currentType;
     }
 
