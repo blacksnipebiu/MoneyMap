@@ -1,4 +1,5 @@
 using MoneyMap.App.ViewModels.Pages;
+using System;
 using System.IO;
 using System.Linq;
 using Avalonia;
@@ -72,7 +73,7 @@ public partial class ImportView : UserControl
     private void OnDrop(object? sender, DragEventArgs e)
     {
         if (DataContext is not ImportViewModel vm) return;
-        
+
         vm.IsDragOver = false;
 
         if (e.DataTransfer.Formats.Contains(DataFormat.File))
@@ -90,6 +91,22 @@ public partial class ImportView : UserControl
                     }
                 }
             }
+        }
+    }
+
+    private void OnFilterFlyoutCloseClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is ImportViewModel vm)
+        {
+            vm.ActiveFilterColumn = null;
+        }
+    }
+
+    private void OnFilterFlyoutClosed(object? sender, EventArgs e)
+    {
+        if (DataContext is ImportViewModel vm)
+        {
+            vm.ActiveFilterColumn = null;
         }
     }
 }

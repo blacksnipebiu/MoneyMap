@@ -112,89 +112,321 @@
 
             <!-- Preview Step -->
             <Border Classes="Card" IsVisible="{Binding HasParsedData}" VerticalAlignment="Stretch">
-                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
-                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
-                        <TextBlock Text="预览导入数据" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
-                        <Button Grid.Column="1" Content="⚙ 映射设置" Command="{Binding OpenMappingDialogCommand}" Padding="8,4" Margin="0,0,12,0"/>
-                        <TextBlock Grid.Column="2" Text="{Binding ImportStatus}" Classes="Caption" Opacity="0.7" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                <Grid RowDefinitions="Auto,Auto,*,Auto">
+                    <!-- Row 0: Title Bar -->
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto">
+                        <CheckBox Grid.Column="0" IsChecked="{Binding IsAllChecked}" IsThreeState="True"
+                                  VerticalAlignment="Center" ToolTip.Tip="点击切换全选/全不选"/>
+                        <TextBlock Grid.Column="1" Text="预览导入数据" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding SelectionSummary}" VerticalAlignment="Center" Margin="12,0,0,0" FontSize="12" Opacity="0.7"/>
+                        <CheckBox Grid.Column="3" IsChecked="{Binding ShowOnlyUnmapped}"
+                                  Content="仅显示未映射" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        <Button Grid.Column="5" Content="映射设置" Command="{Binding OpenMappingDialogCommand}" Padding="8,4" Margin="0,0,8,0"/>
+                        <TextBox Grid.Column="6" Text="{Binding SearchKeyword}" PlaceholderText="搜索..." Width="180" VerticalAlignment="Center"/>
                     </Grid>
 
-                    <Border Grid.Row="2" Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
-                            CornerRadius="6" Padding="12,8" Margin="0,12,0,0">
-                        <Grid ColumnDefinitions="Auto,*,Auto">
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                                <Button Classes="Secondary" Content="全选" FontSize="12" Padding="8,4" Command="{Binding SelectAllFilteredCommand}"/>
-                                <Button Classes="Secondary" Content="取消全选" FontSize="12" Padding="8,4" Command="{Binding DeselectAllFilteredCommand}"/>
-                                <Button Classes="Secondary" Content="反选" FontSize="12" Padding="8,4" Command="{Binding InvertSelectionFilteredCommand}"/>
-                            </StackPanel>
-                            <TextBox Grid.Column="1" Text="{Binding SearchKeyword}" PlaceholderText="搜索..." Margin="12,0,0,0" Width="160"/>
-                            <TextBlock Grid.Column="2" Text="{Binding SelectionSummary}" VerticalAlignment="Center" Margin="12,0,0,0" FontSize="12" Opacity="0.7"/>
+                    <!-- Row 1: Table Header with Filter Buttons -->
+                    <Border Grid.Row="1" Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                            CornerRadius="6,6,0,0" Padding="12,8" Margin="0,12,0,0"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,1,1,0">
+                        <Grid ColumnDefinitions="50,90,180,120,100,120,120,100,80,90,140">
+                            <TextBlock Grid.Column="0" Text="" FontSize="11" Opacity="0.6"/>
+                            <!-- 类型 filter -->
+                            <ToggleButton Grid.Column="1" Background="Transparent" BorderThickness="0" Padding="4,0"
+                                          HorizontalContentAlignment="Left"
+                                          IsChecked="{Binding IsTypeColumnFilterOpen, Mode=OneWay}"
+                                          Command="{Binding ToggleColumnFilterCommand}" CommandParameter="type">
+                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <TextBlock Text="类型" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="▼" FontSize="9" Opacity="0.5" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ToggleButton.Flyout>
+                                    <Flyout Placement="Bottom" ShowMode="Transient" Closed="OnFilterFlyoutClosed">
+                                        <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8" Padding="12"
+                                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                                BoxShadow="0 4 16 0 #20000000" MinWidth="200" MaxHeight="300">
+                                            <Grid RowDefinitions="*,Auto">
+                                                <ScrollViewer Grid.Row="0" MaxHeight="220">
+                                                    <ItemsControl ItemsSource="{Binding ColumnFilterOptions}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:ColumnFilterItem">
+                                                                <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding DisplayName}" FontSize="12" Margin="8,2,0,2"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                                    <Button Classes="Secondary" Content="确定" FontSize="11" Padding="8,2" Click="OnFilterFlyoutCloseClick"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </Flyout>
+                                </ToggleButton.Flyout>
+                            </ToggleButton>
+                            <!-- 描述 filter -->
+                            <ToggleButton Grid.Column="2" Background="Transparent" BorderThickness="0" Padding="4,0"
+                                          HorizontalContentAlignment="Left"
+                                          IsChecked="{Binding IsDescriptionColumnFilterOpen, Mode=OneWay}"
+                                          Command="{Binding ToggleColumnFilterCommand}" CommandParameter="description">
+                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <TextBlock Text="描述" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="▼" FontSize="9" Opacity="0.5" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ToggleButton.Flyout>
+                                    <Flyout Placement="Bottom" ShowMode="Transient" Closed="OnFilterFlyoutClosed">
+                                        <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8" Padding="12"
+                                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                                BoxShadow="0 4 16 0 #20000000" MinWidth="200" MaxHeight="300">
+                                            <Grid RowDefinitions="*,Auto">
+                                                <ScrollViewer Grid.Row="0" MaxHeight="220">
+                                                    <ItemsControl ItemsSource="{Binding ColumnFilterOptions}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:ColumnFilterItem">
+                                                                <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding DisplayName}" FontSize="12" Margin="8,2,0,2"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                                    <Button Classes="Secondary" Content="确定" FontSize="11" Padding="8,2" Click="OnFilterFlyoutCloseClick"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </Flyout>
+                                </ToggleButton.Flyout>
+                            </ToggleButton>
+                            <!-- 对方 filter -->
+                            <ToggleButton Grid.Column="3" Background="Transparent" BorderThickness="0" Padding="4,0"
+                                          HorizontalContentAlignment="Left"
+                                          IsChecked="{Binding IsCounterpartyColumnFilterOpen, Mode=OneWay}"
+                                          Command="{Binding ToggleColumnFilterCommand}" CommandParameter="counterparty">
+                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <TextBlock Text="对方" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="▼" FontSize="9" Opacity="0.5" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ToggleButton.Flyout>
+                                    <Flyout Placement="Bottom" ShowMode="Transient" Closed="OnFilterFlyoutClosed">
+                                        <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8" Padding="12"
+                                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                                BoxShadow="0 4 16 0 #20000000" MinWidth="200" MaxHeight="300">
+                                            <Grid RowDefinitions="*,Auto">
+                                                <ScrollViewer Grid.Row="0" MaxHeight="220">
+                                                    <ItemsControl ItemsSource="{Binding ColumnFilterOptions}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:ColumnFilterItem">
+                                                                <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding DisplayName}" FontSize="12" Margin="8,2,0,2"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                                    <Button Classes="Secondary" Content="确定" FontSize="11" Padding="8,2" Click="OnFilterFlyoutCloseClick"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </Flyout>
+                                </ToggleButton.Flyout>
+                            </ToggleButton>
+                            <!-- 金额 (no filter) -->
+                            <TextBlock Grid.Column="4" Text="金额" FontSize="11" Opacity="0.6" Margin="4,0,0,0" HorizontalAlignment="Right"/>
+                            <!-- 分类 filter -->
+                            <ToggleButton Grid.Column="5" Background="Transparent" BorderThickness="0" Padding="4,0"
+                                          HorizontalContentAlignment="Left"
+                                          IsChecked="{Binding IsCategoryColumnFilterOpen, Mode=OneWay}"
+                                          Command="{Binding ToggleColumnFilterCommand}" CommandParameter="category">
+                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <TextBlock Text="分类" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="▼" FontSize="9" Opacity="0.5" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ToggleButton.Flyout>
+                                    <Flyout Placement="Bottom" ShowMode="Transient" Closed="OnFilterFlyoutClosed">
+                                        <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8" Padding="12"
+                                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                                BoxShadow="0 4 16 0 #20000000" MinWidth="200" MaxHeight="300">
+                                            <Grid RowDefinitions="*,Auto">
+                                                <ScrollViewer Grid.Row="0" MaxHeight="220">
+                                                    <ItemsControl ItemsSource="{Binding ColumnFilterOptions}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:ColumnFilterItem">
+                                                                <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding DisplayName}" FontSize="12" Margin="8,2,0,2"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                                    <Button Classes="Secondary" Content="确定" FontSize="11" Padding="8,2" Click="OnFilterFlyoutCloseClick"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </Flyout>
+                                </ToggleButton.Flyout>
+                            </ToggleButton>
+                            <!-- 账户 (no filter) -->
+                            <TextBlock Grid.Column="6" Text="账户" FontSize="11" Opacity="0.6" Margin="4,0,0,0"/>
+                            <!-- 支付方式 filter -->
+                            <ToggleButton Grid.Column="7" Background="Transparent" BorderThickness="0" Padding="4,0"
+                                          HorizontalContentAlignment="Left"
+                                          IsChecked="{Binding IsPaymentColumnFilterOpen, Mode=OneWay}"
+                                          Command="{Binding ToggleColumnFilterCommand}" CommandParameter="payment">
+                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <TextBlock Text="支付方式" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="▼" FontSize="9" Opacity="0.5" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ToggleButton.Flyout>
+                                    <Flyout Placement="Bottom" ShowMode="Transient" Closed="OnFilterFlyoutClosed">
+                                        <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8" Padding="12"
+                                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                                BoxShadow="0 4 16 0 #20000000" MinWidth="200" MaxHeight="300">
+                                            <Grid RowDefinitions="*,Auto">
+                                                <ScrollViewer Grid.Row="0" MaxHeight="220">
+                                                    <ItemsControl ItemsSource="{Binding ColumnFilterOptions}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:ColumnFilterItem">
+                                                                <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding DisplayName}" FontSize="12" Margin="8,2,0,2"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                                    <Button Classes="Secondary" Content="确定" FontSize="11" Padding="8,2" Click="OnFilterFlyoutCloseClick"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </Flyout>
+                                </ToggleButton.Flyout>
+                            </ToggleButton>
+                            <!-- 状态 filter -->
+                            <ToggleButton Grid.Column="8" Background="Transparent" BorderThickness="0" Padding="4,0"
+                                          HorizontalContentAlignment="Left"
+                                          IsChecked="{Binding IsStatusColumnFilterOpen, Mode=OneWay}"
+                                          Command="{Binding ToggleColumnFilterCommand}" CommandParameter="status">
+                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <TextBlock Text="状态" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="▼" FontSize="9" Opacity="0.5" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ToggleButton.Flyout>
+                                    <Flyout Placement="Bottom" ShowMode="Transient" Closed="OnFilterFlyoutClosed">
+                                        <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8" Padding="12"
+                                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                                BoxShadow="0 4 16 0 #20000000" MinWidth="200" MaxHeight="300">
+                                            <Grid RowDefinitions="*,Auto">
+                                                <ScrollViewer Grid.Row="0" MaxHeight="220">
+                                                    <ItemsControl ItemsSource="{Binding ColumnFilterOptions}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:ColumnFilterItem">
+                                                                <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding DisplayName}" FontSize="12" Margin="8,2,0,2"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                                    <Button Classes="Secondary" Content="确定" FontSize="11" Padding="8,2" Click="OnFilterFlyoutCloseClick"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </Flyout>
+                                </ToggleButton.Flyout>
+                            </ToggleButton>
+                            <!-- 导入状态 filter -->
+                            <ToggleButton Grid.Column="9" Background="Transparent" BorderThickness="0" Padding="4,0"
+                                          HorizontalContentAlignment="Left"
+                                          IsChecked="{Binding IsImportStatusColumnFilterOpen, Mode=OneWay}"
+                                          Command="{Binding ToggleColumnFilterCommand}" CommandParameter="importStatus">
+                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <TextBlock Text="导入状态" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="▼" FontSize="9" Opacity="0.5" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ToggleButton.Flyout>
+                                    <Flyout Placement="Bottom" ShowMode="Transient" Closed="OnFilterFlyoutClosed">
+                                        <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8" Padding="12"
+                                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                                BoxShadow="0 4 16 0 #20000000" MinWidth="200" MaxHeight="300">
+                                            <Grid RowDefinitions="*,Auto">
+                                                <ScrollViewer Grid.Row="0" MaxHeight="220">
+                                                    <ItemsControl ItemsSource="{Binding ImportStatusColumnFilterItems}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:ColumnFilterItem">
+                                                                <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding DisplayName}" FontSize="12" Margin="8,2,0,2"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                                    <Button Classes="Secondary" Content="确定" FontSize="11" Padding="8,2" Click="OnFilterFlyoutCloseClick"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </Flyout>
+                                </ToggleButton.Flyout>
+                            </ToggleButton>
+                            <!-- 时间 (no filter, moved to last) -->
+                            <TextBlock Grid.Column="10" Text="时间" FontSize="11" Opacity="0.6" Margin="4,0,0,0"/>
                         </Grid>
                     </Border>
 
-                    <ScrollViewer Grid.Row="3" Margin="0,12,0,0">
-                        <ItemsControl ItemsSource="{Binding FilteredTransactions}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:TransactionItem">
-                                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,10">
-                                        <Grid RowDefinitions="Auto,Auto">
-                                            <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
-                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                                                <Border Grid.Column="1" Width="28" Height="28" CornerRadius="14"
-                                                        Background="{Binding Transaction.Type, Converter={StaticResource TransactionTypeBrushConverter}}" Margin="0,0,10,0">
-                                                    <TextBlock Text="{Binding Transaction.Type, Converter={StaticResource TransactionTypeIconConverter}}"
-                                                               FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
-                                                </Border>
-                                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
-                                                    <TextBlock Text="{Binding Transaction.Description}" FontWeight="Medium" FontSize="13"
-                                                               TextTrimming="CharacterEllipsis" MaxLines="1"/>
-                                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <TextBlock Text="{Binding Transaction.TransactionTime, StringFormat='yyyy-MM-dd HH:mm'}" FontSize="11" Opacity="0.6"/>
-                                                        <TextBlock Text="{Binding Transaction.Counterparty}" FontSize="11" Opacity="0.6"
-                                                                   IsVisible="{Binding Transaction.Counterparty, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                                                    </StackPanel>
-                                                </StackPanel>
-                                                <TextBlock Grid.Column="3" Text="{Binding Transaction.Amount, StringFormat='{}{0:N2}'}"
-                                                           FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Margin="12,0"
-                                                           Foreground="{Binding Transaction.Type, Converter={StaticResource TransactionTypeAmountColorConverter}}"/>
-                                                <TextBlock Grid.Column="4" Text="{Binding Transaction.Status, Converter={StaticResource TransactionStatusNameConverter}}"
-                                                           FontSize="11" Opacity="0.5" VerticalAlignment="Center"/>
-                                            </Grid>
-                                            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="38,6,0,0">
-                                                <Border CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Background="#D1FAE5">
-                                                    <StackPanel Orientation="Horizontal" Spacing="3">
-                                                        <TextBlock Text="{Binding Transaction.CategoryName}" FontSize="11"/>
-                                                        <TextBlock Text="✓" FontSize="10" Foreground="#10B981" IsVisible="{Binding IsCategoryMapped}"/>
-                                                        <TextBlock Text="⚠" FontSize="10" Foreground="#F59E0B" IsVisible="{Binding IsCategoryMapped, Converter={x:Static BoolConverters.Not}}"/>
-                                                    </StackPanel>
-                                                </Border>
-                                                <Border CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Background="#DBEAFE">
-                                                    <StackPanel Orientation="Horizontal" Spacing="3">
-                                                        <TextBlock Text="{Binding Transaction.DataSourceName}" FontSize="11"/>
-                                                        <TextBlock Text="✓" FontSize="10" Foreground="#10B981" IsVisible="{Binding IsAccountMapped}"/>
-                                                        <TextBlock Text="⚠" FontSize="10" Foreground="#F59E0B" IsVisible="{Binding IsAccountMapped, Converter={x:Static BoolConverters.Not}}"/>
-                                                    </StackPanel>
-                                                </Border>
-                                                <Border CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Background="#F3F4F6"
-                                                        IsVisible="{Binding Transaction.PaymentMethod, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                                    <TextBlock Text="{Binding Transaction.PaymentMethod}" FontSize="11" Opacity="0.7"/>
-                                                </Border>
-                                                <Border CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Background="#FEF3C7"
-                                                        IsVisible="{Binding IsCategoryMapped, Converter={x:Static BoolConverters.Not}}">
-                                                    <TextBlock FontSize="10" Opacity="0.7">
-                                                        <Run Text="原分类："/>
-                                                        <Run Text="{Binding OriginalCategoryName}"/>
-                                                    </TextBlock>
-                                                </Border>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                    <!-- Row 2: ListBox Data Body -->
+                    <ListBox Grid.Row="2" ItemsSource="{Binding FilteredTransactions}"
+                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,1,1"
+                             Background="{DynamicResource CardBackgroundBrush}" Padding="0" Margin="0,0,0,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TransactionItem">
+                                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8" Background="Transparent">
+                                    <Grid ColumnDefinitions="50,90,180,120,100,120,120,100,80,90,140">
+                                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="4,0,0,0">
+                                            <Border Width="10" Height="10" CornerRadius="5"
+                                                    Background="{Binding Transaction.Type, Converter={StaticResource TransactionTypeBrushConverter}}"/>
+                                            <TextBlock Text="{Binding Transaction.Type, Converter={StaticResource TransactionTypeNameConverter}}" FontSize="12"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{Binding Transaction.Description}" FontSize="12"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding Transaction.Counterparty}" FontSize="12"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                        <TextBlock Grid.Column="4" Text="{Binding Transaction.Amount, StringFormat='{}{0:N2}'}"
+                                                   FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right" Margin="0,0,8,0"
+                                                   Foreground="{Binding Transaction.Type, Converter={StaticResource TransactionTypeAmountColorConverter}}"/>
+                                        <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center" Margin="4,0,0,0">
+                                            <TextBlock Text="{Binding Transaction.CategoryName}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="✓" FontSize="10" Foreground="#10B981" IsVisible="{Binding IsCategoryMapped}" VerticalAlignment="Center" ToolTip.Tip="已映射"/>
+                                            <TextBlock Text="⚠" FontSize="10" Foreground="#F59E0B" IsVisible="{Binding IsCategoryMapped, Converter={x:Static BoolConverters.Not}}" VerticalAlignment="Center" ToolTip.Tip="分类未映射，请点击「映射设置」进行配置"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="6" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center" Margin="4,0,0,0">
+                                            <TextBlock Text="{Binding Transaction.DataSourceName}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="✓" FontSize="10" Foreground="#10B981" IsVisible="{Binding IsAccountMapped}" VerticalAlignment="Center" ToolTip.Tip="已映射"/>
+                                            <TextBlock Text="⚠" FontSize="10" Foreground="#F59E0B" IsVisible="{Binding IsAccountMapped, Converter={x:Static BoolConverters.Not}}" VerticalAlignment="Center" ToolTip.Tip="账户未映射，请点击「映射设置」进行配置"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="7" Text="{Binding Transaction.PaymentMethod}" FontSize="12"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                        <TextBlock Grid.Column="8" Text="{Binding Transaction.Status, Converter={StaticResource TransactionStatusNameConverter}}"
+                                                   FontSize="11" VerticalAlignment="Center" Margin="4,0,0,0" Opacity="0.7"/>
+                                        <!-- 导入状态 -->
+                                        <StackPanel Grid.Column="9" VerticalAlignment="Center" Margin="4,0,0,0">
+                                            <Border CornerRadius="3" Padding="4,1" Background="#D1FAE5"
+                                                    IsVisible="{Binding IsSelected}">
+                                                <TextBlock Text="可导入" FontSize="10" Foreground="#059669"
+                                                           IsVisible="{Binding HasMappingIssue, Converter={x:Static BoolConverters.Not}}"/>
+                                            </Border>
+                                            <Border CornerRadius="3" Padding="4,1" Background="#FEF3C7"
+                                                    IsVisible="{Binding IsSelected}">
+                                                <TextBlock Text="未映射" FontSize="10" Foreground="#D97706"
+                                                           IsVisible="{Binding HasMappingIssue}"/>
+                                            </Border>
+                                            <Border CornerRadius="3" Padding="4,1" Background="#FEE2E2"
+                                                    IsVisible="{Binding IsSelected, Converter={x:Static BoolConverters.Not}}">
+                                                <TextBlock Text="不导入" FontSize="10" Foreground="#DC2626"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="10" Text="{Binding Transaction.TransactionTime, StringFormat='yyyy-MM-dd HH:mm'}"
+                                                   FontSize="12" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
 
-                    <Border Grid.Row="4" Background="{DynamicResource CardBackgroundBrush}"
+                    <!-- Row 3: Pagination Footer -->
+                    <Border Grid.Row="3" Background="{DynamicResource CardBackgroundBrush}"
                             Padding="0,16,0,0" Margin="0,12,0,0"
                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
                         <Grid ColumnDefinitions="Auto,*,Auto,Auto">

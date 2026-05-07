@@ -102,6 +102,28 @@ public class TransactionItem : ObservableObject
     }
 }
 
+/// <summary>
+/// 列筛选选项（非泛型，用于 XAML 绑定）
+/// </summary>
+public partial class ColumnFilterItem : ObservableObject
+{
+    [ObservableProperty]
+    private bool _isSelected = true;
+
+    public string Value { get; }
+    public string DisplayName { get; }
+    public Action? OnChanged { get; set; }
+
+    public ColumnFilterItem(string value, string displayName, bool isSelected = true)
+    {
+        Value = value;
+        DisplayName = displayName;
+        _isSelected = isSelected;
+    }
+
+    partial void OnIsSelectedChanged(bool value) => OnChanged?.Invoke();
+}
+
 public partial class ImportViewModel : ViewModelBase
 {
     private readonly SourceDetector _sourceDetector;
@@ -113,6 +135,23 @@ public partial class ImportViewModel : ViewModelBase
         _sourceDetector = sourceDetector;
         _parserFactory = parserFactory;
         _scopeFactory = scopeFactory;
+
+        // 初始化导入状态筛选选项（固定3项）
+        ImportStatusFilterOptions.Add(new FilterOption<string>("importable", "可导入") { OnChanged = OnFilterOptionChanged });
+        ImportStatusFilterOptions.Add(new FilterOption<string>("unmapped", "未映射") { OnChanged = OnFilterOptionChanged });
+        ImportStatusFilterOptions.Add(new FilterOption<string>("excluded", "不导入") { OnChanged = OnFilterOptionChanged });
+
+        ImportStatusColumnFilterItems.Add(new ColumnFilterItem("importable", "可导入", true));
+        ImportStatusColumnFilterItems.Add(new ColumnFilterItem("unmapped", "未映射", true));
+        ImportStatusColumnFilterItems.Add(new ColumnFilterItem("excluded", "不导入", true));
+        foreach (var item in ImportStatusColumnFilterItems)
+        {
+            item.OnChanged = () =>
+            {
+                var src = ImportStatusFilterOptions.FirstOrDefault(o => o.Value == item.Value);
+                if (src != null) src.IsSelected = item.IsSelected;
+            };
+        }
     }
 
     [ObservableProperty]
@@ -421,6 +460,63 @@ public partial class ImportViewModel : ViewModelBase
     private bool _isPaymentMethodFilterOpen;
 
     /// <summary>
+    /// 仅显示映射有问题的项
+    /// </summary>
+    [ObservableProperty]
+    private bool _showOnlyUnmapped;
+
+    partial void OnShowOnlyUnmappedChanged(bool value) => ApplyFilter();
+
+    /// <summary>
+    /// 当前打开的列筛选器（null=未打开）
+    /// </summary>
+    [ObservableProperty]
+    private string? _activeFilterColumn;
+
+    /// <summary>
+    /// 列筛选面板是否打开（根据 ActiveFilterColumn 计算）
+    /// </summary>
+    public bool IsColumnFilterOpen => ActiveFilterColumn != null;
+
+    /// <summary>
+    /// 各列 Popup 是否打开（根据 ActiveFilterColumn 计算）
+    /// </summary>
+    public bool IsTypeColumnFilterOpen => ActiveFilterColumn == "type";
+    public bool IsStatusColumnFilterOpen => ActiveFilterColumn == "status";
+    public bool IsPaymentColumnFilterOpen => ActiveFilterColumn == "payment";
+    public bool IsCategoryColumnFilterOpen => ActiveFilterColumn == "category";
+    public bool IsCounterpartyColumnFilterOpen => ActiveFilterColumn == "counterparty";
+    public bool IsDescriptionColumnFilterOpen => ActiveFilterColumn == "description";
+    public bool IsImportStatusColumnFilterOpen => ActiveFilterColumn == "importStatus";
+
+    /// <summary>
+    /// 列筛选选项（列筛选面板绑定的当前列选项）
+    /// </summary>
+    public ObservableCollection<ColumnFilterItem> ColumnFilterOptions { get; } = new();
+
+    /// <summary>
+    /// 分类筛选选项（带勾选状态）
+    /// </summary>
+    public ObservableCollection<FilterOption<string>> CategoryFilterOptions { get; } = new();
+
+    /// <summary>
+    /// 对方筛选选项（带勾选状态）
+    /// </summary>
+    public ObservableCollection<FilterOption<string>> CounterpartyFilterOptions { get; } = new();
+
+    /// <summary>
+    /// 描述筛选选项（带勾选状态）
+    /// </summary>
+    public ObservableCollection<FilterOption<string>> DescriptionFilterOptions { get; } = new();
+
+    /// <summary>
+    /// 导入状态筛选选项（带勾选状态）：可导入、未映射、不导入
+    /// </summary>
+    public ObservableCollection<FilterOption<string>> ImportStatusFilterOptions { get; } = new();
+
+    public ObservableCollection<ColumnFilterItem> ImportStatusColumnFilterItems { get; } = new();
+
+    /// <summary>
     /// 类型筛选摘要文本
     /// </summary>
     [ObservableProperty]
@@ -463,9 +559,44 @@ public partial class ImportViewModel : ViewModelBase
     private int _filteredCount;
 
     /// <summary>
+    /// 总交易记录数（所有记录）
+    /// </summary>
+    [ObservableProperty]
+    private int _importTotalCount;
+
+    /// <summary>
+    /// 所有记录中已选中的数量
+    /// </summary>
+    [ObservableProperty]
+    private int _importSelectedCount;
+
+    /// <summary>
     /// 选择统计文本
     /// </summary>
-    public string SelectionSummary => $"已选 {SelectedCount} / 共 {FilteredCount}";
+    public string SelectionSummary => $"已选 {ImportSelectedCount} / 共 {ImportTotalCount}";
+
+    /// <summary>
+    /// 全选三态 CheckBox 状态：true=全选, false=全不选, null=部分选中
+    /// </summary>
+    private bool? _isAllChecked = true;
+    private bool _isUpdatingCheckState;
+    public bool? IsAllChecked
+    {
+        get => _isAllChecked;
+        set
+        {
+            if (SetProperty(ref _isAllChecked, value))
+            {
+                if (!_isUpdatingCheckState)
+                {
+                    if (value == true)
+                        SelectAllFiltered();
+                    else
+                        DeselectAllFiltered();
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// 分页信息文本
@@ -674,6 +805,8 @@ public partial class ImportViewModel : ViewModelBase
             {
                 _allTransactions.Add(new TransactionItem(t));
             }
+            ImportTotalCount = _allTransactions.Count;
+            ImportSelectedCount = _allTransactions.Count;
 
             // 解析成功后持久化 ImportRecord（同路径不重复创建）
             try
@@ -831,6 +964,58 @@ public partial class ImportViewModel : ViewModelBase
         foreach (var method in paymentMethods)
         {
             PaymentMethodFilterOptions.Add(new FilterOption<string>(method!, method!) { OnChanged = OnFilterOptionChanged });
+        }
+
+        // 提取分类选项
+        CategoryFilterOptions.Clear();
+        var categoryNames = _allTransactions
+            .Select(t => t.Transaction.CategoryName)
+            .Where(c => !string.IsNullOrEmpty(c))
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
+        foreach (var cat in categoryNames)
+        {
+            CategoryFilterOptions.Add(new FilterOption<string>(cat!, cat!) { OnChanged = OnFilterOptionChanged });
+        }
+
+        // 提取对方选项
+        CounterpartyFilterOptions.Clear();
+        var counterparties = _allTransactions
+            .Select(t => t.Transaction.Counterparty)
+            .Where(c => !string.IsNullOrEmpty(c))
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
+        foreach (var cp in counterparties)
+        {
+            CounterpartyFilterOptions.Add(new FilterOption<string>(cp!, cp!) { OnChanged = OnFilterOptionChanged });
+        }
+
+        // 提取描述选项
+        DescriptionFilterOptions.Clear();
+        var descriptions = _allTransactions
+            .Select(t => t.Transaction.Description)
+            .Where(d => !string.IsNullOrEmpty(d))
+            .Distinct()
+            .OrderBy(d => d)
+            .ToList();
+        foreach (var desc in descriptions)
+        {
+            DescriptionFilterOptions.Add(new FilterOption<string>(desc!, desc!) { OnChanged = OnFilterOptionChanged });
+        }
+
+        // 导入状态筛选选项（固定3项，每次解析时重新确保存在）
+        ImportStatusFilterOptions.Clear();
+        ImportStatusFilterOptions.Add(new FilterOption<string>("importable", "可导入") { OnChanged = OnFilterOptionChanged });
+        ImportStatusFilterOptions.Add(new FilterOption<string>("unmapped", "未映射") { OnChanged = OnFilterOptionChanged });
+        ImportStatusFilterOptions.Add(new FilterOption<string>("excluded", "不导入") { OnChanged = OnFilterOptionChanged });
+
+        // Re-sync import status dedicated filter items
+        foreach (var item in ImportStatusColumnFilterItems)
+        {
+            var src = ImportStatusFilterOptions.FirstOrDefault(o => o.Value == item.Value);
+            if (src != null) item.IsSelected = src.IsSelected;
         }
     }
 
@@ -1104,7 +1289,17 @@ public partial class ImportViewModel : ViewModelBase
                 if (e.PropertyName == nameof(CategoryMappingItem.IsSelected))
                     OnPropertyChanged(nameof(HasSelectedCategoryMappings));
                 if (e.PropertyName == nameof(CategoryMappingItem.IsMapped))
+                {
                     UpdateCategoryMappingGroups();
+                    var catItem = (CategoryMappingItem)s!;
+                    if (catItem.IsMapped)
+                    {
+                        if (MappedCategories.Contains(catItem))
+                            MappedCategories.Move(MappedCategories.IndexOf(catItem), 0);
+                        if (FilteredMappedCategories.Contains(catItem))
+                            FilteredMappedCategories.Move(FilteredMappedCategories.IndexOf(catItem), 0);
+                    }
+                }
             };
 
             CategoryMappings.Add(item);
@@ -1532,6 +1727,18 @@ public partial class ImportViewModel : ViewModelBase
 
     partial void OnCurrentPageChanged(int value) => ApplyPagination();
 
+    partial void OnFilteredCountChanged(int value) => OnPropertyChanged(nameof(SelectionSummary));
+    partial void OnSelectedCountChanged(int value) => OnPropertyChanged(nameof(SelectionSummary));
+    partial void OnImportTotalCountChanged(int value) => OnPropertyChanged(nameof(SelectionSummary));
+    partial void OnImportSelectedCountChanged(int value) => OnPropertyChanged(nameof(SelectionSummary));
+
+    partial void OnTotalPagesChanged(int value)
+    {
+        OnPropertyChanged(nameof(PaginationInfo));
+        OnPropertyChanged(nameof(HasNextPage));
+        OnPropertyChanged(nameof(HasPreviousPage));
+    }
+
     /// <summary>
     /// 应用筛选（当筛选选项变化时调用）
     /// </summary>
@@ -1570,6 +1777,27 @@ public partial class ImportViewModel : ViewModelBase
             filtered = filtered.Where(t => !string.IsNullOrEmpty(t.Transaction.PaymentMethod) && selectedPaymentMethods.Contains(t.Transaction.PaymentMethod));
         }
 
+        // 按分类筛选（勾选的分类）
+        var selectedCategories = CategoryFilterOptions.Where(o => o.IsSelected).Select(o => o.Value).ToList();
+        if (selectedCategories.Count > 0 && selectedCategories.Count < CategoryFilterOptions.Count)
+        {
+            filtered = filtered.Where(t => !string.IsNullOrEmpty(t.Transaction.CategoryName) && selectedCategories.Contains(t.Transaction.CategoryName));
+        }
+
+        // 按对方筛选（勾选的对方）
+        var selectedCounterparties = CounterpartyFilterOptions.Where(o => o.IsSelected).Select(o => o.Value).ToList();
+        if (selectedCounterparties.Count > 0 && selectedCounterparties.Count < CounterpartyFilterOptions.Count)
+        {
+            filtered = filtered.Where(t => !string.IsNullOrEmpty(t.Transaction.Counterparty) && selectedCounterparties.Contains(t.Transaction.Counterparty));
+        }
+
+        // 按描述筛选（勾选的描述）
+        var selectedDescriptions = DescriptionFilterOptions.Where(o => o.IsSelected).Select(o => o.Value).ToList();
+        if (selectedDescriptions.Count > 0 && selectedDescriptions.Count < DescriptionFilterOptions.Count)
+        {
+            filtered = filtered.Where(t => !string.IsNullOrEmpty(t.Transaction.Description) && selectedDescriptions.Contains(t.Transaction.Description));
+        }
+
         // 按关键词搜索
         if (!string.IsNullOrEmpty(SearchKeyword))
         {
@@ -1580,13 +1808,28 @@ public partial class ImportViewModel : ViewModelBase
                 (t.Transaction.CategoryName?.ToLowerInvariant().Contains(keyword) ?? false));
         }
 
+        // 仅显示映射有问题的项
+        if (ShowOnlyUnmapped)
+        {
+            filtered = filtered.Where(t => t.HasMappingIssue);
+        }
+
+        // 按导入状态筛选（勾选的导入状态）
+        var selectedImportStatuses = ImportStatusFilterOptions.Where(o => o.IsSelected).Select(o => o.Value).ToList();
+        if (selectedImportStatuses.Count > 0 && selectedImportStatuses.Count < ImportStatusFilterOptions.Count)
+        {
+            filtered = filtered.Where(t =>
+            {
+                var status = GetImportStatusCategory(t);
+                return selectedImportStatuses.Contains(status);
+            });
+        }
+
         // 保存筛选后的数据
         _filteredData = filtered.ToList();
 
-        // 更新统计
+        // 更新统计（选中计数由 UpdateSelectionCounts 在 ApplyPagination 中设置）
         FilteredCount = _filteredData.Count;
-        SelectedCount = _filteredData.Count(t => t.IsSelected);
-        UnselectedCount = _filteredData.Count(t => !t.IsSelected);
 
         // 更新筛选摘要
         UpdateFilterSummaries();
@@ -1594,6 +1837,16 @@ public partial class ImportViewModel : ViewModelBase
         // 重置页码并应用分页
         CurrentPage = 1;
         ApplyPagination();
+    }
+
+    /// <summary>
+    /// 获取交易项的导入状态分类
+    /// </summary>
+    private static string GetImportStatusCategory(TransactionItem t)
+    {
+        if (!t.IsSelected) return "excluded";
+        if (t.HasMappingIssue) return "unmapped";
+        return "importable";
     }
 
     /// <summary>
@@ -1688,8 +1941,13 @@ public partial class ImportViewModel : ViewModelBase
         FilteredTransactions.Clear();
         foreach (var item in pageData)
         {
+            item.PropertyChanged -= OnTransactionItemPropertyChanged;
+            item.PropertyChanged += OnTransactionItemPropertyChanged;
             FilteredTransactions.Add(item);
         }
+
+        // 同步当前页选中状态
+        UpdateSelectionCounts();
     }
 
     /// <summary>
@@ -1735,12 +1993,41 @@ public partial class ImportViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// 处理单个交易项选中状态变化（通过复选框勾选时触发）
+    /// </summary>
+    private void OnTransactionItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TransactionItem.IsSelected))
+        {
+            ImportSelectedCount = _allTransactions.Count(t => t.IsSelected);
+        }
+    }
+
+    /// <summary>
     /// 更新选中计数
     /// </summary>
     private void UpdateSelectionCounts()
     {
-        SelectedCount = _filteredData.Count(t => t.IsSelected);
-        UnselectedCount = _filteredData.Count(t => !t.IsSelected);
+        var total = FilteredTransactions.Count;
+        if (total == 0)
+        {
+            SelectedCount = 0;
+            UnselectedCount = 0;
+            _isUpdatingCheckState = true;
+            IsAllChecked = false;
+            _isUpdatingCheckState = false;
+            ImportSelectedCount = 0;
+            return;
+        }
+        var selected = FilteredTransactions.Count(t => t.IsSelected);
+        SelectedCount = selected;
+        UnselectedCount = total - selected;
+        _isUpdatingCheckState = true;
+        IsAllChecked = selected == total ? true : selected == 0 ? false : null;
+        _isUpdatingCheckState = false;
+
+        // 更新全局选中计数
+        ImportSelectedCount = _allTransactions.Count(t => t.IsSelected);
     }
 
     /// <summary>
@@ -1749,7 +2036,7 @@ public partial class ImportViewModel : ViewModelBase
     [RelayCommand]
     private void SelectAllFiltered()
     {
-        foreach (var item in _filteredData)
+        foreach (var item in FilteredTransactions)
         {
             item.IsSelected = true;
         }
@@ -1757,12 +2044,12 @@ public partial class ImportViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// 取消选择筛选后的数据（所有页）
+    /// 取消选择筛选后的数据（当前页）
     /// </summary>
     [RelayCommand]
     private void DeselectAllFiltered()
     {
-        foreach (var item in _filteredData)
+        foreach (var item in FilteredTransactions)
         {
             item.IsSelected = false;
         }
@@ -1770,16 +2057,130 @@ public partial class ImportViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// 反选筛选后的数据（所有页）
+    /// 反选筛选后的数据（当前页）
     /// </summary>
     [RelayCommand]
     private void InvertSelectionFiltered()
     {
-        foreach (var item in _filteredData)
+        foreach (var item in FilteredTransactions)
         {
             item.IsSelected = !item.IsSelected;
         }
         UpdateSelectionCounts();
+    }
+
+    /// <summary>
+    /// 三态全选：全选 → 全不选，部分选中时 → 全选
+    /// </summary>
+    [RelayCommand]
+    private void CycleSelectAll()
+    {
+        if (IsAllChecked == true)
+        {
+            DeselectAllFiltered();
+        }
+        else
+        {
+            SelectAllFiltered();
+        }
+    }
+
+    /// <summary>
+    /// 切换列筛选面板（打开/关闭指定列的筛选面板）
+    /// </summary>
+    [RelayCommand]
+    private void ToggleColumnFilter(string? columnName)
+    {
+        if (string.IsNullOrEmpty(columnName)) return;
+        columnName = columnName.ToLowerInvariant();
+        var validColumns = new[] { "type", "status", "payment", "category", "counterparty", "description", "importStatus" };
+        if (!validColumns.Contains(columnName)) return;
+
+        if (ActiveFilterColumn == columnName)
+            ActiveFilterColumn = null;
+        else
+            ActiveFilterColumn = columnName;
+    }
+
+    /// <summary>
+    /// 关闭列筛选面板
+    /// </summary>
+    [RelayCommand]
+    private void CloseColumnFilter()
+    {
+        ActiveFilterColumn = null;
+    }
+
+    /// <summary>
+    /// 全选所有列筛选选项
+    /// </summary>
+    [RelayCommand]
+    private void SelectAllColumnFilterOptions()
+    {
+        foreach (var item in ColumnFilterOptions)
+        {
+            item.IsSelected = true;
+        }
+    }
+
+    partial void OnActiveFilterColumnChanged(string? value)
+    {
+        OnPropertyChanged(nameof(IsColumnFilterOpen));
+        OnPropertyChanged(nameof(IsTypeColumnFilterOpen));
+        OnPropertyChanged(nameof(IsStatusColumnFilterOpen));
+        OnPropertyChanged(nameof(IsPaymentColumnFilterOpen));
+        OnPropertyChanged(nameof(IsCategoryColumnFilterOpen));
+        OnPropertyChanged(nameof(IsCounterpartyColumnFilterOpen));
+        OnPropertyChanged(nameof(IsDescriptionColumnFilterOpen));
+        OnPropertyChanged(nameof(IsImportStatusColumnFilterOpen));
+        ColumnFilterOptions.Clear();
+        if (value == null) return;
+
+        IEnumerable<ColumnFilterItem> sourceItems = value switch
+        {
+            "type" => TypeFilterOptions.Select(o =>
+            {
+                var item = new ColumnFilterItem(o.Value.ToString()!, o.DisplayName, o.IsSelected);
+                item.OnChanged = () => o.IsSelected = item.IsSelected;
+                return item;
+            }),
+            "status" => StatusFilterOptions.Select(o =>
+            {
+                var item = new ColumnFilterItem(o.Value.ToString()!, o.DisplayName, o.IsSelected);
+                item.OnChanged = () => o.IsSelected = item.IsSelected;
+                return item;
+            }),
+            "payment" => PaymentMethodFilterOptions.Select(o =>
+            {
+                var item = new ColumnFilterItem(o.Value, o.DisplayName, o.IsSelected);
+                item.OnChanged = () => o.IsSelected = item.IsSelected;
+                return item;
+            }),
+            "category" => CategoryFilterOptions.Select(o =>
+            {
+                var item = new ColumnFilterItem(o.Value, o.DisplayName, o.IsSelected);
+                item.OnChanged = () => o.IsSelected = item.IsSelected;
+                return item;
+            }),
+            "counterparty" => CounterpartyFilterOptions.Select(o =>
+            {
+                var item = new ColumnFilterItem(o.Value, o.DisplayName, o.IsSelected);
+                item.OnChanged = () => o.IsSelected = item.IsSelected;
+                return item;
+            }),
+            "description" => DescriptionFilterOptions.Select(o =>
+            {
+                var item = new ColumnFilterItem(o.Value, o.DisplayName, o.IsSelected);
+                item.OnChanged = () => o.IsSelected = item.IsSelected;
+                return item;
+            }),
+            _ => Enumerable.Empty<ColumnFilterItem>()
+        };
+
+        foreach (var item in sourceItems)
+        {
+            ColumnFilterOptions.Add(item);
+        }
     }
 
     /// <summary>
@@ -1800,6 +2201,21 @@ public partial class ImportViewModel : ViewModelBase
         }
         // 全选所有支付方式
         foreach (var option in PaymentMethodFilterOptions)
+        {
+            option.IsSelected = true;
+        }
+        // 全选所有分类
+        foreach (var option in CategoryFilterOptions)
+        {
+            option.IsSelected = true;
+        }
+        // 全选所有对方
+        foreach (var option in CounterpartyFilterOptions)
+        {
+            option.IsSelected = true;
+        }
+        // 全选所有描述
+        foreach (var option in DescriptionFilterOptions)
         {
             option.IsSelected = true;
         }
@@ -2048,12 +2464,19 @@ public partial class ImportViewModel : ViewModelBase
         FilteredTransactions.Clear();
         _allTransactions.Clear();
         _filteredData.Clear();
+        ImportTotalCount = 0;
+        ImportSelectedCount = 0;
         _parseResult = null;
         _currentImportRecordId = null;
         SelectedAccount = null;
         TypeFilterOptions.Clear();
         StatusFilterOptions.Clear();
         PaymentMethodFilterOptions.Clear();
+        CategoryFilterOptions.Clear();
+        CounterpartyFilterOptions.Clear();
+        DescriptionFilterOptions.Clear();
+        ColumnFilterOptions.Clear();
+        ActiveFilterColumn = null;
         SearchKeyword = string.Empty;
         FieldMappings.Clear();
         CategoryMappings.Clear();

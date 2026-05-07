@@ -95,3 +95,4 @@ dotnet test   # xUnit + EF Core InMemory
 - 支付宝 CSV 编码检测: UTF-8 → GBK 回退
 - 理财智能分类: 余额宝/零钱通 + 收益 → Income，蚂蚁财富 + 买入 → Transfer
 - 存在一个测试项目但引用已过时（`Bookkeeping.Data.Tests` 引用已更名的项目）
+- 预览表格使用 **ListBox + 自定义列 Grid** 实现，不使用 DataGrid（即使已引用包）

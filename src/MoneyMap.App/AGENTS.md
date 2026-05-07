@@ -51,6 +51,7 @@ App/
 - **DB 访问**: 每个 ViewModel 接收 `IServiceScopeFactory`，每次 DB 操作 `using var scope = _scopeFactory.CreateScope()` 创建新作用域
 - **Toast**: 全局 `App.ToastService.ShowError(msg)` 静态调用，不注入
 - **ViewModel 缓存**: `MainWindowViewModel` 构造时创建所有页面 ViewModel，导航时返回缓存实例（保留状态）
+- **预览表格**: 使用 `ListBox + 列 Grid ItemTemplate` 呈现，不使用 DataGrid — 更灵活的自定义样式控制
 - **映射弹窗**: 映射设置作为 overlay 弹窗（`IsMappingDialogOpen`），解析后直接进入预览
 - **Converters**: 在 `App.axaml` Resources 注册，XAML 用 `{StaticResource XxxConverter}` 引用
 

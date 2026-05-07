@@ -79,7 +79,13 @@ public class CategoryMappingItem : ObservableObject
     public long? TargetCategoryId
     {
         get => _targetCategoryId;
-        set => SetProperty(ref _targetCategoryId, value);
+        set
+        {
+            if (SetProperty(ref _targetCategoryId, value))
+            {
+                OnPropertyChanged(nameof(IsMapped));
+            }
+        }
     }
     
     /// <summary>选中的目标分类名</summary>
